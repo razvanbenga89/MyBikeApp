@@ -1,0 +1,13 @@
+/* 
+  Localizable.strings
+  
+
+  Created by Razvan Benga on 30.05.2023.
+  
+*/
+
+"add_bike_action" = "Add Bike";
+"no_bikes_text" = "You don't have any bikes added yet. Add your first bike and start registering your rides in order to keep you bike service cycles up to date";
+"cancel_action" = "Cancel";
+"add_bike_title" = "Add Bike";
+"no_rides_text" = "You don't have any rides added yet. Add you first ride and keep track of all your activities.";
