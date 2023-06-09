@@ -8,11 +8,11 @@
 import SwiftUI
 import Theme
 import Localization
-import PopupView
 import Storage
 import Models
 import BikesRepo
 import Dependencies
+import UserDefaultsConfig
 
 public class BikeBaseModel: ObservableObject {
   var screenTitle: String {
@@ -31,8 +31,9 @@ public class BikeBaseModel: ObservableObject {
   @Published var selectedBikeColor: Theme.BikeColor
   @Published var selectedWheelSize: WheelSize! = .big
   @Published var bikeName: String = ""
-  @Published var serviceDueInKm: String = ""
+  @Published var serviceDue: String = ""
   @Published var isDefaultBike: Bool = true
+  @Published var selectedDistanceUnit = UserDefaultsConfig.distanceUnit
   @Published var selectedBikeTypeIndex: Int = 0 {
     didSet {
       selectedBikeType = BikeType.allCases[selectedBikeTypeIndex]
@@ -64,7 +65,7 @@ public class AddBikeModel: BikeBaseModel {
   @MainActor
   override func didTapSubmit() async {
     do {
-      guard let serviceDue = Double(serviceDueInKm) else {
+      guard let serviceDue = Double(self.serviceDue) else {
         throw "Service input invalid"
       }
       
@@ -106,7 +107,7 @@ public class EditBikeModel: BikeBaseModel {
   @MainActor
   override func didTapSubmit() async {
     do {
-      guard let serviceDue = Double(serviceDueInKm) else {
+      guard let serviceDue = Double(self.serviceDue) else {
         throw "Service input invalid"
       }
       
@@ -129,7 +130,7 @@ public class EditBikeModel: BikeBaseModel {
   private func update() {
     self.bikeName = bike.name
     self.isDefaultBike = bike.isDefault
-    self.serviceDueInKm = "\(bike.serviceDue)"
+    self.serviceDue = String(format: "%.0f", bike.serviceDue)
     self.selectedBikeTypeIndex = bikeTypes.firstIndex(of: bike.type) ?? 0
     self.selectedBikeColor = Theme.BikeColor(rawValue: bike.color) ?? .bikeWhite
     self.selectedWheelSize = bike.wheelSize
@@ -190,10 +191,10 @@ public struct AddBikeView: View {
           )
           
           CustomTextField(
-            text: self.$model.serviceDueInKm,
+            text: self.$model.serviceDue,
             placeholder: "Service In",
             errorText: "Required Field",
-            tips: "KM"
+            description: self.model.selectedDistanceUnit.description
           )
           .focused(self.$focusedField, equals: .bikeService)
           .keyboardType(.decimalPad)
@@ -203,14 +204,14 @@ public struct AddBikeView: View {
             .foregroundColor(.white)
             .font(.textFieldFont)
           
-          Spacer()
-          
           Button(self.model.submitButtonTitle) {
             Task {
               await self.model.didTapSubmit()
             }
           }
           .buttonStyle(PrimaryButtonStyle())
+          
+          Spacer()
         }
         .padding()
       }

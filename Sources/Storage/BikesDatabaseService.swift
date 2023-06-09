@@ -8,6 +8,7 @@
 import Foundation
 import CoreData
 import Models
+import UserDefaultsConfig
 
 extension NSSet {
   func toArray<T>() -> [T] {
@@ -29,13 +30,16 @@ extension Bike {
       Ride(entity: $0)
     } ?? []
     
+    let savedServiceDue = Measurement(value: entity.serviceDue, unit: UnitLength.kilometers)
+    let convertedServiceDue = savedServiceDue.converted(to: UserDefaultsConfig.distanceUnit.unitLength)
+    
     self.init(
       id: id,
       type: type,
       name: name,
       color: color,
       wheelSize: wheelSize,
-      serviceDue: entity.serviceDue,
+      serviceDue: convertedServiceDue.value,
       isDefault: entity.isDefault,
       rides: rides
     )
@@ -58,33 +62,57 @@ public class BikesDatabaseService {
   }
   
   public func addNewBike(bike: Bike) async throws {
-    try await withCheckedThrowingContinuation { continuation in
-      let context = contextProvider.viewContext
-      
-      context.perform {
-        if bike.isDefault {
-          let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
-          entities.forEach {
-            $0.isDefault = false
-          }
-        }
-        
-        let entity = BikeEntity(context: context)
-        entity.bikeId = bike.id
-        entity.name = bike.name
-        entity.color = bike.color
-        entity.isDefault = bike.isDefault
-        entity.serviceDue = bike.serviceDue
-        entity.type = Int32(bike.type.rawValue)
-        entity.wheelSize = Int32(bike.wheelSize.rawValue)
-        
-        if context.saveIfNeeded() {
-          continuation.resume()
-        } else {
-          continuation.resume(throwing: DBError.addEntityFailed)
+    let context = contextProvider.newBackgroundContext
+    try await context.perform {
+      if bike.isDefault {
+        let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
+        entities.forEach {
+          $0.isDefault = false
         }
       }
+      
+      let entity = BikeEntity(context: context)
+      entity.bikeId = bike.id
+      entity.name = bike.name
+      entity.color = bike.color
+      entity.isDefault = bike.isDefault
+      entity.type = Int32(bike.type.rawValue)
+      entity.wheelSize = Int32(bike.wheelSize.rawValue)
+      
+      let bikeServiceDue = Measurement(value: bike.serviceDue, unit: UserDefaultsConfig.distanceUnit.unitLength)
+      entity.serviceDue = bikeServiceDue.converted(to: .kilometers).value
+
+      try context.save()
     }
+//    try await withCheckedThrowingContinuation { continuation in
+//      let context = contextProvider.viewContext
+//
+//      context.perform {
+//        if bike.isDefault {
+//          let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
+//          entities.forEach {
+//            $0.isDefault = false
+//          }
+//        }
+//
+//        let entity = BikeEntity(context: context)
+//        entity.bikeId = bike.id
+//        entity.name = bike.name
+//        entity.color = bike.color
+//        entity.isDefault = bike.isDefault
+//        entity.type = Int32(bike.type.rawValue)
+//        entity.wheelSize = Int32(bike.wheelSize.rawValue)
+//
+//        let bikeServiceDue = Measurement(value: bike.serviceDue, unit: UserDefaultsConfig.distanceUnit.unitLength)
+//        entity.serviceDue = bikeServiceDue.converted(to: .kilometers).value
+//
+//        if context.saveIfNeeded() {
+//          continuation.resume()
+//        } else {
+//          continuation.resume(throwing: DBError.addEntityFailed)
+//        }
+//      }
+//   }
   }
   
   public func updateBike(bike: Bike) async throws {
@@ -99,9 +127,11 @@ public class BikesDatabaseService {
             entity.name = bike.name
             entity.color = bike.color
             entity.isDefault = bike.isDefault
-            entity.serviceDue = bike.serviceDue
             entity.type = Int32(bike.type.rawValue)
             entity.wheelSize = Int32(bike.wheelSize.rawValue)
+            
+            let bikeServiceDue = Measurement(value: bike.serviceDue, unit: UserDefaultsConfig.distanceUnit.unitLength)
+            entity.serviceDue = bikeServiceDue.converted(to: .kilometers).value
           } else {
             entity.isDefault = false
           }

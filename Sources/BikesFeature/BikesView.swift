@@ -11,20 +11,25 @@ import Theme
 import Localization
 import Models
 import Dependencies
+import UserDefaultsConfig
 
 extension Bike {
   var formattedServiceDue: String {
     let serviceIn = serviceDue - ridesTotalDistance
     
     if serviceIn > 0 {
-      return String(format: "%.0f", serviceIn)
+      return String(format: "%.0f", serviceIn) + UserDefaultsConfig.distanceUnit.description.lowercased()
     } else {
       return "Overdue"
     }
   }
   
   var formattedRidesTotalDistance: String {
-    String(format: "%.1f", ridesTotalDistance)
+    if let formattedDistance = NumberFormatter.distanceNumberFormatter.string(from: NSNumber(value: ridesTotalDistance)) {
+      return formattedDistance + UserDefaultsConfig.distanceUnit.description.lowercased()
+    } else {
+      return ""
+    }
   }
   
   var serviceDuePercentage: Double {
@@ -144,7 +149,7 @@ public struct BikesView: View {
         BikesLoadedView(bikes: bikes, model: model)
       }
     }
-    .taskLoadOnce {
+    .viewDidLoadTask {
       await self.model.load()
     }
     .fullScreenCover(
@@ -171,7 +176,7 @@ struct BikesLoadedView: View {
   
   var body: some View {
     NavigationStack {
-      ScrollView {
+      ScrollView(showsIndicators: false) {
         LazyVStack(spacing: 10) {
           ForEach(bikes) { bike in
             BikeCardView(

@@ -17,11 +17,17 @@ extension BikesRepo: DependencyKey {
     
     return Self(
       getBikes: {
-        bikesDatabaseService.fetchBikes()
-          .map {
-            $0.compactMap(Bike.init)
+        AsyncStream { continuation in
+          let task = Task {
+            for await value in await bikesDatabaseService.fetchBikes() {
+              continuation.yield(value.compactMap(Bike.init))
+            }
           }
-          .eraseToStream()
+          
+          continuation.onTermination = { _ in
+            task.cancel()
+          }
+        }
       },
       getBike: { uuid in
         do {

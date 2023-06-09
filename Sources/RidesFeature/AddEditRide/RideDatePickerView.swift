@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Theme
+import Popovers
 
 struct RideDatePickerView: View {
   @Binding var formattedDate: String
@@ -38,26 +39,33 @@ struct RideDatePickerView: View {
       isFieldValid = true
       isShowingPopover = true
     }
-    .alwaysPopover(isPresented: $isShowingPopover) {
-      VStack {
-        GeometryReader { proxy in
+    .popover(present: $isShowingPopover, attributes: {
+      $0.position = .absolute(
+        originAnchor: .top,
+        popoverAnchor: .bottom
+      )
+    }) {
+      Templates.Container(
+        backgroundColor: Theme.AppColor.appGreyBlue.value,
+        padding: 0
+      ) {
+        VStack {
           DatePicker("", selection: $date, displayedComponents: .date)
             .datePickerStyle(.graphical)
             .labelsHidden()
             .scaleEffect(x: 0.9, y: 0.9, anchor: .center)
-            .frame(maxWidth: .infinity, maxHeight: proxy.size.height)
+          
+          Button {
+            isShowingPopover = false
+            self.selectedDate = self.date
+          } label: {
+            Text("Save")
+          }
+          .buttonStyle(PrimaryButtonStyle())
         }
-        
-        Button {
-          isShowingPopover = false
-          self.selectedDate = self.date
-        } label: {
-          Text("Save")
-        }
-        .buttonStyle(PrimaryButtonStyle())
+        .padding()
+        .background(Theme.AppColor.appGreyBlue.value)
       }
-      .padding()
-      .background(Theme.AppColor.appGreyBlue.value)
     }
   }
 }

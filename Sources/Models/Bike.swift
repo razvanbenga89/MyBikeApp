@@ -27,6 +27,33 @@ public enum WheelSize: Int, CaseIterable, Identifiable {
   case small = 2
 }
 
+public enum DistanceUnit: String, CaseIterable, Identifiable {
+  public var id: Self {
+    self
+  }
+  
+  case mi = "MI"
+  case km = "KM"
+  
+  public var unitLength: UnitLength {
+    switch self {
+    case .mi:
+      return .miles
+    case .km:
+      return .kilometers
+    }
+  }
+  
+  public var toggledUnitLength: UnitLength {
+    switch self {
+    case .mi:
+      return .kilometers
+    case .km:
+      return .miles
+    }
+  }
+}
+
 public struct Bike: Identifiable {
   public let id: UUID
   public let type: BikeType
@@ -146,5 +173,17 @@ extension Bike {
           )
         }
       }
+  }
+}
+
+extension Bike: CustomStringConvertible {
+  public var description: String {
+    name
+  }
+}
+
+extension DistanceUnit: CustomStringConvertible {
+  public var description: String {
+    rawValue
   }
 }

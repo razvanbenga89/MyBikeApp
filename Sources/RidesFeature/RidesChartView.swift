@@ -8,6 +8,7 @@
 import SwiftUI
 import Theme
 import Models
+import UserDefaultsConfig
 
 extension BikeType {
   var chartDescription: String {
@@ -48,7 +49,13 @@ struct RidesChartView: View {
       }
     }
   }
-  private let threshhold: Int = 20000
+  
+  private var threshhold: Int {
+    let kilometers = Measurement(value: 20000, unit: UnitLength.kilometers)
+    let converted = kilometers.converted(to: UserDefaultsConfig.distanceUnit.unitLength)
+    return Int(converted.value)
+  }
+  
   private var bikeRides: [BikeRides] = []
   
   init(
@@ -59,21 +66,12 @@ struct RidesChartView: View {
     }
     
     self.bikeRides = groupedRides.map { BikeRides(bikeType: $0.key, rides: $0.value) }
-    
-    let highestTotalDistance = bikeRides
-      .sorted(by: { $0.ridesTotalDistance < $1.ridesTotalDistance })
-      .last?
-      .ridesTotalDistance ?? 0
-    
-    let count = max(String(Int(highestTotalDistance)).count - 1, 1)
-    let power = pow(Double(10), Double(count))
-    //self.threshhold = Int(ceil(highestTotalDistance / power) * power)
   }
   
   var body: some View {
     VStack(spacing: 10) {
       HStack {
-        Image(systemName: "align.vertical.bottom.fill")
+        Theme.Image.statsIcon.value
         Text("All Rides Statistics")
         
         Spacer()
@@ -151,7 +149,7 @@ struct RidesChartView: View {
           .stroke(Theme.AppColor.appGrey.value, lineWidth: 1)
       )
       
-      Text("Total: 25.570KM")
+      Text("Total: \(getAllRidesDistance())KM")
     }
     .foregroundColor(.white)
     .padding()
@@ -159,12 +157,22 @@ struct RidesChartView: View {
     .cornerRadius(6)
   }
   
+  private func getAllRidesDistance() -> String {
+    let totalDistance = bikeRides.reduce(0, { $0 + $1.ridesTotalDistance })
+    
+    return NumberFormatter.chartDistanceNumberFormatter.string(
+      from: NSNumber(value: totalDistance)
+    ) ?? ""
+  }
+  
   private func getRidesTotalDistance(for bikeType: BikeType) -> String {
     guard let bike = bikeRides.first(where: { $0.bikeType == bikeType }) else {
       return ""
     }
     
-    return "\(bike.ridesTotalDistance)"
+    return NumberFormatter.chartDistanceNumberFormatter.string(
+      from: NSNumber(value: bike.ridesTotalDistance)
+    ) ?? ""
   }
   
   private func calculateChartHeight(bikeType: BikeType, proxy: GeometryProxy) -> CGFloat {
@@ -172,7 +180,7 @@ struct RidesChartView: View {
       return 0
     }
     
-    let percentage = bike.ridesTotalDistance / Double(threshhold)
+    let percentage = min(1, bike.ridesTotalDistance / Double(threshhold))
     return max(0, (percentage * proxy.size.height))
   }
 }

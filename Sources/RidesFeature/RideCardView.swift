@@ -8,6 +8,7 @@
 import SwiftUI
 import Models
 import Theme
+import UserDefaultsConfig
 
 extension Ride {
   public var formattedDate: String {
@@ -15,7 +16,11 @@ extension Ride {
   }
   
   public var formattedDistance: String {
-    String(format: "%.1f", distance)
+    if let formattedDistance = NumberFormatter.distanceNumberFormatter.string(from: NSNumber(value: distance)) {
+      return formattedDistance + UserDefaultsConfig.distanceUnit.description.lowercased()
+    } else {
+      return ""
+    }
   }
   
   public var formattedDuration: String {

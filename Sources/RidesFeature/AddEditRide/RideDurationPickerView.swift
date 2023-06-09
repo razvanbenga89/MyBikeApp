@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Theme
+import Popovers
 
 struct RideDurationPickerView: View {
   @Binding var duration: String
@@ -43,47 +44,53 @@ struct RideDurationPickerView: View {
       isFieldValid = true
       isShowingPopover = true
     }
-    .alwaysPopover(isPresented: $isShowingPopover) {
-      VStack {
-        HStack(spacing: 0) {
-          VStack {
-            Text("Hours")
-            
-            Picker("", selection: $hours) {
-              ForEach(0..<21) {
-                Text(String($0))
-                  .tag($0)
+    .popover(present: $isShowingPopover) {
+      Templates.Container(
+        backgroundColor: Theme.AppColor.appGreyBlue.value,
+        padding: 0
+      ) {
+        VStack {
+          HStack(spacing: 0) {
+            VStack {
+              Text("Hours")
+              
+              Picker("", selection: $hours) {
+                ForEach(0..<21) {
+                  Text(String($0))
+                    .tag($0)
+                }
               }
+              .pickerStyle(.wheel)
             }
-            .pickerStyle(.wheel)
+            
+            VStack {
+              Text("Minutes")
+              
+              Picker("", selection: $minutes) {
+                ForEach(0..<60) {
+                  Text(String($0))
+                    .tag($0)
+                }
+              }
+              .pickerStyle(.wheel)
+            }
           }
+          .font(.textFont)
           
-          VStack {
-            Text("Minutes")
-            
-            Picker("", selection: $minutes) {
-              ForEach(0..<60) {
-                Text(String($0))
-                  .tag($0)
-              }
-            }
-            .pickerStyle(.wheel)
+          Button {
+            isShowingPopover = false
+            self.selectedHours = self.hours
+            self.selectedMinutes = self.minutes
+          } label: {
+            Text("Save")
           }
+          .buttonStyle(PrimaryButtonStyle())
         }
-        .font(.textFont)
-        
-        Button {
-          isShowingPopover = false
-          self.selectedHours = self.hours
-          self.selectedMinutes = self.minutes
-        } label: {
-          Text("Save")
-        }
-        .buttonStyle(PrimaryButtonStyle())
+        .padding()
+        .background(Theme.AppColor.appGreyBlue.value)
       }
-      .padding()
-      .background(Theme.AppColor.appGreyBlue.value)
     }
+
   }
 }
 

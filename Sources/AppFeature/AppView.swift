@@ -9,6 +9,7 @@ import SwiftUI
 import Theme
 import BikesFeature
 import RidesFeature
+import SettingsFeature
 
 public class AppViewModel: ObservableObject {
   public enum Destination: Hashable {
@@ -23,6 +24,10 @@ public class AppViewModel: ObservableObject {
   
   lazy var ridesModel: RidesModel = {
     RidesModel()
+  }()
+  
+  lazy var settingsModel: SettingsModel = {
+    SettingsModel()
   }()
   
   @Published var destination: Destination
@@ -53,7 +58,7 @@ public struct AppView: View {
           Text("Rides")
         }
         .tag(AppViewModel.Destination.rides)
-      Text("Settings")
+      SettingsView(model: model.settingsModel)
         .tabItem {
           Image.settingsIcon
           Text("Settings")

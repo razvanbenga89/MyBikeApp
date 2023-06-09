@@ -12,12 +12,7 @@ import Theme
 import Localization
 import BikesRepo
 import RidesRepo
-
-extension Bike: CustomStringConvertible {
-  public var description: String {
-    name
-  }
-}
+import UserDefaultsConfig
 
 public class RideBaseModel: ObservableObject {
   var screenTitle: String {
@@ -29,6 +24,7 @@ public class RideBaseModel: ObservableObject {
   
   public var onFinish: () -> Void = unimplemented("onFinish")
   
+  @Published var selectedDistanceUnit = UserDefaultsConfig.distanceUnit
   @Published var rideName: String = ""
   @Published var isRideNameFieldValid: Bool = true
   
@@ -83,7 +79,7 @@ public class RideBaseModel: ObservableObject {
   func load() async {
     for await bikes in bikesRepo.getBikes() {
       self.bikes = bikes
-      self.selectedBike = bikes.first
+      self.selectedBike = bikes.first(where: { $0.isDefault })
     }
   }
   
@@ -191,7 +187,7 @@ public class EditRideModel: RideBaseModel {
   private func update() {
     self.rideName = ride.name
     self.selectedDate = ride.date
-    self.distance = String(ride.distance)
+    self.distance = String(format: "%.1f", ride.distance)
     self.selectedHours = ride.duration / 60
     self.selectedMinutes = ride.duration % 60
     updateDuration()
@@ -276,7 +272,7 @@ public struct AddRideView: View {
             },
             placeholder: "Distance",
             errorText: "Required Field",
-            tips: "KM"
+            description: self.model.selectedDistanceUnit.description
           )
           .focused(self.$focusedField, equals: .distance)
           .keyboardType(.decimalPad)

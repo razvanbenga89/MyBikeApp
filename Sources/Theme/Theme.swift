@@ -71,6 +71,8 @@ public enum Theme {
     case loadingBoltIcon
     case deleteIcon
     case editIcon
+    case missingRides
+    case statsIcon
     
     public var value: SwiftUI.Image {
       SwiftUI.Image(rawValue, bundle: Bundle.module)

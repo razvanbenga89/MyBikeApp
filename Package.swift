@@ -13,17 +13,19 @@ let package = Package(
       .library(name: "Localization", targets: ["Localization"]),
       .library(name: "BikesFeature", targets: ["BikesFeature"]),
       .library(name: "RidesFeature", targets: ["RidesFeature"]),
+      .library(name: "SettingsFeature", targets: ["SettingsFeature"]),
       .library(name: "Storage", targets: ["Storage"]),
       .library(name: "Models", targets: ["Models"]),
       .library(name: "BikesRepo", targets: ["BikesRepo"]),
       .library(name: "BikesRepoLive", targets: ["BikesRepoLive"]),
       .library(name: "RidesRepo", targets: ["RidesRepo"]),
-      .library(name: "RidesRepoLive", targets: ["RidesRepoLive"])
+      .library(name: "RidesRepoLive", targets: ["RidesRepoLive"]),
+      .library(name: "UserDefaultsConfig", targets: ["UserDefaultsConfig"])
     ],
     dependencies: [
       .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "0.1.0"),
       .package(url: "https://github.com/pointfreeco/swiftui-navigation", from: "0.4.5"),
-      .package(url: "https://github.com/exyte/PopupView.git", from: "2.4.2")
+      .package(url: "https://github.com/aheze/Popovers", from: "1.3.2")
     ],
     targets: [
       .target(name: "BikesFeature", dependencies: [
@@ -44,14 +46,24 @@ let package = Package(
         "BikesRepo",
         "RidesRepo"
       ]),
+      .target(name: "SettingsFeature", dependencies: [
+        .product(name: "SwiftUINavigation", package: "swiftui-navigation"),
+        .product(name: "Dependencies", package: "swift-dependencies"),
+        "Theme",
+        "Localization",
+        "Models",
+        "Storage",
+        "BikesRepo"
+      ]),
       .target(name: "AppFeature", dependencies: [
         "BikesFeature",
         "RidesFeature",
+        "SettingsFeature",
         "Theme"
       ]),
       .target(name: "Theme", dependencies: [
         .product(name: "SwiftUINavigation", package: "swiftui-navigation"),
-        "PopupView"
+        "Popovers"
       ]),
       .target(
         name: "Localization",
@@ -61,7 +73,8 @@ let package = Package(
       .target(
         name: "Storage",
         dependencies: [
-          "Models"
+          "Models",
+          "UserDefaultsConfig"
         ]
       ),
       .target(
@@ -84,5 +97,7 @@ let package = Package(
         "Storage",
         "RidesRepo"
       ]),
+      .target(name: "UserDefaultsConfig", dependencies: [
+      ])
     ]
 )

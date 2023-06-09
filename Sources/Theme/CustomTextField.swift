@@ -14,7 +14,7 @@ public struct CustomTextField: View {
   private var isRequired: Bool
   private var placeholder: String?
   private var errorText: String?
-  private var tips: String?
+  private var description: String?
   private var onChangeText: ((String) -> Void)?
   
   public init(
@@ -24,7 +24,7 @@ public struct CustomTextField: View {
     onChangeText: ((String) -> Void)? = nil,
     placeholder: String? = nil,
     errorText: String? = nil,
-    tips: String? = nil
+    description: String? = nil
   ) {
     self.placeholder = placeholder
     self.isRequired = isRequired
@@ -32,7 +32,7 @@ public struct CustomTextField: View {
     self._isTextValid = isTextValid
     self.errorText = errorText
     self.onChangeText = onChangeText
-    self.tips = tips
+    self.description = description
   }
   
   public var body: some View {
@@ -56,8 +56,8 @@ public struct CustomTextField: View {
             onChangeText?(newValue)
           }
           
-        if let tips = tips {
-          Text(tips)
+        if let description = description {
+          Text(description)
             .foregroundColor(Theme.AppColor.appGrey.value)
         }
       }

@@ -8,6 +8,7 @@
 import Foundation
 import CoreData
 import Models
+import UserDefaultsConfig
 
 extension Ride {
   public init?(entity: RideEntity) {
@@ -20,10 +21,13 @@ extension Ride {
       return nil
     }
     
+    let savedRideDistance = Measurement(value: entity.distance, unit: UnitLength.kilometers)
+    let convertedDistance = savedRideDistance.converted(to: UserDefaultsConfig.distanceUnit.unitLength)
+    
     self.init(
       id: id,
       name: name,
-      distance: entity.distance,
+      distance: convertedDistance.value,
       duration: Int(entity.duration),
       date: date,
       bikeId: bikeId,
@@ -56,7 +60,6 @@ public class RidesDatabaseService {
         let entity = RideEntity(context: context)
         entity.rideId = ride.id
         entity.name = ride.name
-        entity.distance = ride.distance
         entity.duration = Int32(ride.duration)
         entity.date = ride.date
         let bikeEntity = BikeEntity.fetchFirst(
@@ -64,6 +67,9 @@ public class RidesDatabaseService {
           predicate: NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(ride.bikeId)")
         ) as? BikeEntity
         entity.bike = bikeEntity
+        
+        let rideDistance = Measurement(value: ride.distance, unit: UserDefaultsConfig.distanceUnit.unitLength)
+        entity.distance = rideDistance.converted(to: UnitLength.kilometers).value
         
         if context.saveIfNeeded() {
           continuation.resume()
@@ -82,9 +88,12 @@ public class RidesDatabaseService {
         let predicate = NSPredicate(format: "%K = %@", #keyPath(RideEntity.rideId), "\(ride.id)")
         if let entity = RideEntity.fetchFirst(context: context, predicate: predicate) as? RideEntity {
           entity.name = ride.name
-          entity.distance = ride.distance
           entity.duration = Int32(ride.duration)
           entity.date = ride.date
+          
+          let rideDistance = Measurement(value: ride.distance, unit: UserDefaultsConfig.distanceUnit.unitLength)
+          entity.distance = rideDistance.converted(to: UnitLength.kilometers).value
+          
           let bikeEntity = BikeEntity.fetchFirst(
             context: context,
             predicate: NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(ride.bikeId)")

@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import PopupView
+import Popovers
 
 public struct SelectionView<T: Identifiable & CustomStringConvertible, Content: View>: View {
   @State private var isShowingPopover = false
@@ -65,16 +65,30 @@ public struct SelectionView<T: Identifiable & CustomStringConvertible, Content: 
             .opacity(values.count > 1 ? 1 : 0.5)
         }
         .disabled(values.count <= 1)
-        .alwaysPopover(isPresented: $isShowingPopover) {
-          VStack(spacing: 0) {
-            ForEach(values, id: \.id) { value in
-              self.contentBuilder(value, self.$isShowingPopover)
+        .popover(present: $isShowingPopover, attributes: {
+          $0.sourceFrameInset.top = 30
+          $0.position = .absolute(
+            originAnchor: .top,
+            popoverAnchor: .top
+          )
+        }) {
+          Templates.Container(
+            arrowSide: .top(.mostClockwise),
+            backgroundColor: Theme.AppColor.appGreyBlue.value,
+            padding: 0
+          ) {
+            VStack(spacing: 0) {
+              ForEach(values, id: \.id) { value in
+                self.contentBuilder(value, self.$isShowingPopover)
+              }
             }
+            .background(Theme.AppColor.appGreyBlue.value)
           }
-          .background(Theme.AppColor.appGreyBlue.value)
         }
       }
-      .customTextField($selectedValue.isPresent())
+      .customTextField(
+        isRequired ? $selectedValue.isPresent() : .constant(true)
+      )
       
       if !isTextValid, let errorText = self.errorText {
         Text(errorText)

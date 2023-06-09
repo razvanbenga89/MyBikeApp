@@ -39,13 +39,13 @@ public class RidesModel: ObservableObject {
     case delete(Ride)
   }
   
-  @Published var viewState: ViewState
+  @Published var viewState: ViewState?
   @Published var destination: Destination?
   
   @Dependency(\.ridesRepo) var ridesRepo
   
   public init(
-    viewState: ViewState = .empty,
+    viewState: ViewState? = nil,
     destination: Destination? = nil
   ) {
     self.viewState = viewState
@@ -58,7 +58,6 @@ public class RidesModel: ObservableObject {
       if rides.isEmpty {
         viewState = .empty
       } else {
-        
         let sortedRides = Dictionary(grouping: rides) { ride in
           let dateComps = Calendar.current.dateComponents([.year, .month], from: ride.date)
           return dateComps
@@ -74,7 +73,6 @@ public class RidesModel: ObservableObject {
         
         let sortedSections = sections.sorted(by: { $0.date > $1.date })
         viewState = .loadedRides(sortedSections)
-        
       }
     }
   }
@@ -133,15 +131,20 @@ public struct RidesView: View {
   }
   
   public var body: some View {
-    Switch(self.$model.viewState) {
-      CaseLet(/RidesModel.ViewState.empty) { _ in
-        RidesEmptyView(model: model)
+    IfLet(self.$model.viewState) { viewState in
+      Switch(viewState) {
+        CaseLet(/RidesModel.ViewState.empty) { _ in
+          RidesEmptyView(model: model)
+        }
+        CaseLet(/RidesModel.ViewState.loadedRides) { $ridesSections in
+          RidesLoadedView(ridesSections: ridesSections, model: model)
+        }
       }
-      CaseLet(/RidesModel.ViewState.loadedRides) { $ridesSections in
-        RidesLoadedView(ridesSections: ridesSections, model: model)
-      }
+    } else: {
+      Theme.AppColor.appBlack.value
+        .ignoresSafeArea()
     }
-    .taskLoadOnce {
+    .viewDidLoadTask {
       await self.model.load()
     }
     .fullScreenCover(
@@ -170,11 +173,10 @@ struct RidesLoadedView: View {
     NavigationStack {
       VStack {
         RidesChartView(
-          bikes: [],
           rides: ridesSections.flatMap { $0.rides }
         )
         
-        ScrollView {
+        ScrollView(showsIndicators: false) {
           LazyVStack(spacing: 10) {
             ForEach(ridesSections, id: \.date) { rideSection in
               Section(
@@ -259,14 +261,14 @@ struct RidesEmptyView: View {
   var body: some View {
     VStack(spacing: 10) {
       Spacer()
-//      Image.missingBikesCard
-//        .resizable()
-//        .scaledToFit()
-//        .frame(height: 200)
+      Theme.Image.missingRides.value
+        .resizable()
+        .scaledToFit()
+        .frame(height: 200)
       ZStack(alignment: .leading) {
-//        Image.dottedLine
-//          .resizable()
-//          .scaledToFit()
+        Image.dottedLine
+          .resizable()
+          .scaledToFit()
         Text(Localization.noRidesText)
           .padding()
           .multilineTextAlignment(.center)
@@ -306,7 +308,7 @@ struct RidesView_Previews: PreviewProvider {
             }
           }
         } operation: {
-          RidesModel()
+          RidesModel(viewState: .empty)
         }
       )
       .previewDisplayName("Empty rides list")

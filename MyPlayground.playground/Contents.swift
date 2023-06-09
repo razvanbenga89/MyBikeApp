@@ -16,3 +16,15 @@ let value: Double = 2001
 let count = max(String(Int(value)).count - 1, 1)
 let power = pow(Double(10), Double(count))
 let threshhold = Int(ceil(value / power) * power)
+
+
+let number = 2000000
+
+let formatter = NumberFormatter()
+formatter.numberStyle = .decimal
+formatter.groupingSeparator = "."
+formatter.groupingSize = 3
+
+if let formattedString = formatter.string(from: NSNumber(value: number)) {
+  print(formattedString) // Output: 2.000
+}
