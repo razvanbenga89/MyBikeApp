@@ -20,7 +20,7 @@ extension Bike {
     if serviceIn > 0 {
       return String(format: "%.0f", serviceIn) + UserDefaultsConfig.distanceUnit.description.lowercased()
     } else {
-      return "Overdue"
+      return Localization.serviceOverdueMessage
     }
   }
   
@@ -99,10 +99,10 @@ public class BikesModel: ObservableObject {
     self.destination = .alert(
       AlertViewState(
         title: bike.name,
-        message: "will be deleted.",
+        message: Localization.deleteAlertMessage,
         actions: [
-          AlertActionState(title: "Cancel", actionType: .cancel),
-          AlertActionState(title: "Delete", style: .destructive, actionType: .delete(bike))
+          AlertActionState(title: Localization.cancelAction, actionType: .cancel),
+          AlertActionState(title: Localization.deleteAction, style: .destructive, actionType: .delete(bike))
         ]
       )
     )
@@ -199,7 +199,7 @@ struct BikesLoadedView: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .principal) {
-          Text("Bikes")
+          Text(Localization.bikesTitle)
             .font(.navBarTitleFont)
             .foregroundColor(.white)
         }
@@ -209,7 +209,7 @@ struct BikesLoadedView: View {
           } label: {
             HStack {
               Theme.Image.addIcon.value
-              Text("Add Bike")
+              Text(Localization.addBikeAction)
             }
           }
           .font(.navBarItemFont)

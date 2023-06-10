@@ -8,6 +8,7 @@
 import SwiftUI
 import Theme
 import Popovers
+import Localization
 
 struct RideDatePickerView: View {
   @Binding var formattedDate: String
@@ -15,15 +16,18 @@ struct RideDatePickerView: View {
   @Binding var isFieldValid: Bool
   @State var isShowingPopover: Bool = false
   @State private var date = Date()
+  private let onTapGesture: () -> Void
   
   init(
     formattedDate: Binding<String>,
     selectedDate: Binding<Date>,
-    isFieldValid: Binding<Bool>
+    isFieldValid: Binding<Bool>,
+    onTapGesture: @escaping () -> Void
   ) {
     self._formattedDate = formattedDate
     self._selectedDate = selectedDate
     self._isFieldValid = isFieldValid
+    self.onTapGesture = onTapGesture
     self.date = selectedDate.wrappedValue
   }
   
@@ -31,15 +35,17 @@ struct RideDatePickerView: View {
     CustomTextField(
       text: $formattedDate,
       isTextValid: $isFieldValid,
-      placeholder: "Date",
-      errorText: "Required Field"
+      placeholder: Localization.datePlaceholder,
+      errorText: Localization.requiredFieldMessage
     )
     .disabled(true)
     .onTapGesture {
       isFieldValid = true
       isShowingPopover = true
+      onTapGesture()
     }
     .popover(present: $isShowingPopover, attributes: {
+      $0.rubberBandingMode = .none
       $0.position = .absolute(
         originAnchor: .top,
         popoverAnchor: .bottom
@@ -75,7 +81,8 @@ struct RideDatePickerView_Previews: PreviewProvider {
     RideDatePickerView(
       formattedDate: .constant(""),
       selectedDate: .constant(Date()),
-      isFieldValid: .constant(true)
+      isFieldValid: .constant(true),
+      onTapGesture: {}
     )
   }
 }

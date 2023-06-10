@@ -11,17 +11,20 @@ import Models
 import XCTestDynamicOverlay
 
 public struct RidesRepo {
+  public var setup: @Sendable () async throws -> Void
   public var getRides: @Sendable () -> AsyncStream<[Ride]>
   public var addNewRide: @Sendable (Ride) async throws -> Void
   public var updateRide: @Sendable (Ride) async throws -> Void
   public var deleteRide: @Sendable (UUID) async throws -> Void
   
   public init(
+    setup: @escaping @Sendable () async throws -> Void,
     getRides: @escaping @Sendable () -> AsyncStream<[Ride]>,
     addNewRide: @escaping @Sendable (Ride) async throws -> Void,
     updateRide: @escaping @Sendable (Ride) async throws -> Void,
     deleteRide: @escaping @Sendable (UUID) async throws -> Void
   ) {
+    self.setup = setup
     self.getRides = getRides
     self.addNewRide = addNewRide
     self.updateRide = updateRide
@@ -31,6 +34,7 @@ public struct RidesRepo {
 
 extension RidesRepo: TestDependencyKey {
   public static let testValue = Self(
+    setup: unimplemented("\(Self.self).setup"),
     getRides: unimplemented("\(Self.self).getRides"),
     addNewRide: unimplemented("\(Self.self).addNewRide"),
     updateRide: unimplemented("\(Self.self).updateRide"),
@@ -38,6 +42,7 @@ extension RidesRepo: TestDependencyKey {
   )
   
   public static let previewValue = Self(
+    setup: {},
     getRides: {
       AsyncStream { continuation in
         let bikeId = UUID()

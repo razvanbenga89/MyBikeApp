@@ -51,7 +51,7 @@ public struct CustomTextField: View {
       
       HStack {
         TextField("", text: $text)
-          .onChange(of: text) { newValue in
+          .onChange(of: $text.wrappedValue) { newValue in
             self.isTextValid = true
             onChangeText?(newValue)
           }

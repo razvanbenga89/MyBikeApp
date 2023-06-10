@@ -140,6 +140,14 @@ extension Font {
   public static var alertMessageFont: Font {
     .system(size: 17, weight: .regular)
   }
+  
+  public static var notificationTitleFont: Font {
+    .system(size: 15, weight: .bold)
+  }
+  
+  public static var notificationSubtitleFont: Font {
+    .system(size: 15, weight: .regular)
+  }
 
   public static var navBarItemFont: Font {
     .system(size: 17, weight: .regular)

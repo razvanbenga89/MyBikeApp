@@ -31,7 +31,20 @@ public class BikeBaseModel: ObservableObject {
   @Published var selectedBikeColor: Theme.BikeColor
   @Published var selectedWheelSize: WheelSize! = .big
   @Published var bikeName: String = ""
-  @Published var serviceDue: String = ""
+  @Published var isBikeNameFieldValid: Bool = true
+  @Published var formattedServiceDue: String = ""
+  @Published var serviceDue: String = "" {
+    didSet {
+      let newServiceDue = serviceDue.removeDuplicateCharacters(input: ".")
+      if let _ = Double(newServiceDue) {
+        formattedServiceDue = newServiceDue
+        isServiceDueFieldValid = true
+      } else {
+        isServiceDueFieldValid = false
+      }
+    }
+  }
+  @Published var isServiceDueFieldValid: Bool = true
   @Published var isDefaultBike: Bool = true
   @Published var selectedDistanceUnit = UserDefaultsConfig.distanceUnit
   @Published var selectedBikeTypeIndex: Int = 0 {
@@ -50,6 +63,16 @@ public class BikeBaseModel: ObservableObject {
   func didTapCancel() {
     onFinish()
   }
+  
+  func validateFields() {
+    isBikeNameFieldValid = !bikeName.isEmpty
+    isServiceDueFieldValid = !formattedServiceDue.isEmpty
+  }
+  
+  func areFieldsValid() -> Bool {
+    isBikeNameFieldValid &&
+    isServiceDueFieldValid
+  }
 }
 
 public class AddBikeModel: BikeBaseModel {
@@ -65,8 +88,10 @@ public class AddBikeModel: BikeBaseModel {
   @MainActor
   override func didTapSubmit() async {
     do {
-      guard let serviceDue = Double(self.serviceDue) else {
-        throw "Service input invalid"
+      validateFields()
+      
+      guard areFieldsValid() else {
+        throw "Invalid input fields"
       }
       
       let bikeId = UUID()
@@ -76,7 +101,7 @@ public class AddBikeModel: BikeBaseModel {
         name: bikeName,
         color: selectedBikeColor.rawValue,
         wheelSize: selectedWheelSize,
-        serviceDue: serviceDue,
+        serviceDue: Double(serviceDue) ?? 0,
         isDefault: isDefaultBike
       )
       
@@ -90,10 +115,10 @@ public class AddBikeModel: BikeBaseModel {
 public class EditBikeModel: BikeBaseModel {
   private let bike: Bike
   override var screenTitle: String {
-    "Edit Bike"
+    Localization.editBikeTitle
   }
   override var submitButtonTitle: String {
-    "Save"
+    Localization.saveAction
   }
   
   @Dependency(\.bikesRepo) var bikesRepo
@@ -107,8 +132,10 @@ public class EditBikeModel: BikeBaseModel {
   @MainActor
   override func didTapSubmit() async {
     do {
-      guard let serviceDue = Double(self.serviceDue) else {
-        throw "Service input invalid"
+      validateFields()
+      
+      guard areFieldsValid() else {
+        throw "Invalid input fields"
       }
       
       let newBike = Bike(
@@ -117,7 +144,7 @@ public class EditBikeModel: BikeBaseModel {
         name: bikeName,
         color: selectedBikeColor.rawValue,
         wheelSize: selectedWheelSize,
-        serviceDue: serviceDue,
+        serviceDue: Double(serviceDue) ?? 0,
         isDefault: isDefaultBike
       )
       
@@ -143,6 +170,12 @@ public struct AddBikeView: View {
     case bikeService
   }
   
+  enum Ids {
+    static let colorSelectionViewId = "colorSelectionViewId"
+    static let bikeNameViewId = "bikeNameViewId"
+    static let bikeServiceViewId = "bikeServiceViewId"
+  }
+  
   @ObservedObject var model: BikeBaseModel
   @FocusState private var focusedField: Field?
   
@@ -152,70 +185,101 @@ public struct AddBikeView: View {
   
   public var body: some View {
     NavigationView {
-      VStack {
-        ColorSelectionView(
-          bikeColors: self.model.bikeColors,
-          selectedBikeColor: self.$model.selectedBikeColor
-        )
-        BikeSelectionView(
-          bikeTypes: self.model.bikeTypes,
-          selectedBikeTypeIndex: self.$model.selectedBikeTypeIndex,
-          selectedWheelSize: self.$model.selectedWheelSize,
-          selectedBikeColor: self.$model.selectedBikeColor
-        )
-          
-        VStack(spacing: 20) {
-          CustomTextField(
-            text: self.$model.bikeName,
-            placeholder: "Bike Name",
-            errorText: "Required Field"
-          )
-          .focused(self.$focusedField, equals: .bikeName)
-          .submitLabel(.next)
-          
-          SelectionView(
-            selectedValue: self.$model.selectedWheelSize,
-            values: .constant(self.model.wheelSizes),
-            isRequired: true,
-            placeholder: "Wheel Size",
-            contentBuilder: { selectedValue, $isSelectionViewShown in
-              Button {
-                isSelectionViewShown = false
-                self.model.selectedWheelSize = selectedValue
-              } label: {
-                Text(selectedValue.description)
-                  .foregroundColor(.white)
+      ScrollViewReader { proxy in
+        ScrollView(showsIndicators: false) {
+          VStack {
+            ColorSelectionView(
+              bikeColors: self.model.bikeColors,
+              selectedBikeColor: self.$model.selectedBikeColor
+            )
+            .id(Ids.colorSelectionViewId)
+            
+            BikeSelectionView(
+              bikeTypes: self.model.bikeTypes,
+              selectedBikeTypeIndex: self.$model.selectedBikeTypeIndex,
+              selectedWheelSize: self.$model.selectedWheelSize,
+              selectedBikeColor: self.$model.selectedBikeColor
+            )
+            
+            VStack(spacing: 20) {
+              CustomTextField(
+                text: self.$model.bikeName,
+                isTextValid: self.$model.isBikeNameFieldValid,
+                placeholder: Localization.bikeNamePlaceholder,
+                errorText: Localization.requiredFieldMessage
+              )
+              .focused(self.$focusedField, equals: .bikeName)
+              .submitLabel(.done)
+              .id(Ids.bikeNameViewId)
+              
+              SelectionView(
+                selectedValue: self.$model.selectedWheelSize,
+                values: .constant(self.model.wheelSizes),
+                isRequired: true,
+                placeholder: Localization.wheelSizePlaceholder,
+                contentBuilder: { selectedValue, $isSelectionViewShown in
+                  Button {
+                    isSelectionViewShown = false
+                    self.model.selectedWheelSize = selectedValue
+                  } label: {
+                    Text(selectedValue.description)
+                      .foregroundColor(.white)
+                  }
+                  .frame(width: 100, height: 40)
+                },
+                onTapGesture: {
+                  self.focusedField = nil
+                }
+              )
+              
+              CustomTextField(
+                text: self.$model.formattedServiceDue,
+                isTextValid: self.$model.isServiceDueFieldValid,
+                onChangeText: {
+                  self.model.serviceDue = $0
+                },
+                placeholder: Localization.serviceInPlaceholder,
+                errorText: Localization.requiredFieldMessage,
+                description: self.model.selectedDistanceUnit.description
+              )
+              .focused(self.$focusedField, equals: .bikeService)
+              .keyboardType(.decimalPad)
+              .id(Ids.bikeServiceViewId)
+              
+              Toggle(Localization.defaultBikePlaceholder, isOn: self.$model.isDefaultBike)
+                .toggleStyle(SwitchToggleStyle(tint: Theme.AppColor.appLightBlue.value))
+                .foregroundColor(.white)
+                .font(.textFieldFont)
+              
+              Button(self.model.submitButtonTitle) {
+                Task {
+                  await self.model.didTapSubmit()
+                }
               }
-              .frame(width: 100, height: 40)
-            }
-          )
-          
-          CustomTextField(
-            text: self.$model.serviceDue,
-            placeholder: "Service In",
-            errorText: "Required Field",
-            description: self.model.selectedDistanceUnit.description
-          )
-          .focused(self.$focusedField, equals: .bikeService)
-          .keyboardType(.decimalPad)
-          
-          Toggle("Default Bike", isOn: self.$model.isDefaultBike)
-            .toggleStyle(SwitchToggleStyle(tint: Theme.AppColor.appLightBlue.value))
-            .foregroundColor(.white)
-            .font(.textFieldFont)
-          
-          Button(self.model.submitButtonTitle) {
-            Task {
-              await self.model.didTapSubmit()
+              .buttonStyle(PrimaryButtonStyle())
             }
           }
-          .buttonStyle(PrimaryButtonStyle())
+          .padding(.horizontal)
           
           Spacer()
         }
-        .padding()
+        .onChange(of: focusedField) { newValue in
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation {
+              if let newValue = newValue {
+                switch newValue {
+                case .bikeName:
+                  proxy.scrollTo(Ids.bikeNameViewId, anchor: .bottom)
+                case .bikeService:
+                  proxy.scrollTo(Ids.bikeServiceViewId, anchor: .top)
+                }
+              } else {
+                proxy.scrollTo(Ids.colorSelectionViewId, anchor: .top)
+              }
+            }
+          }
+        }
       }
-      .frame(maxHeight: .infinity)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .principal) {
@@ -229,20 +293,13 @@ public struct AddBikeView: View {
           }
           .font(.navBarItemFont)
         }
-        ToolbarItem(placement: .keyboard) {
-          Button("Done") {
-            focusedField = nil
+        
+        if focusedField == .bikeService {
+          ToolbarItem(placement: .keyboard) {
+            Button(Localization.doneAction) {
+              focusedField = nil
+            }
           }
-        }
-      }
-      .onSubmit {
-        switch focusedField {
-        case .bikeName:
-          self.focusedField = .bikeService
-        case .bikeService:
-          self.focusedField = nil
-        default:
-          break
         }
       }
       .background(

@@ -16,6 +16,9 @@ extension BikesRepo: DependencyKey {
     let bikesDatabaseService = BikesDatabaseService()
     
     return Self(
+      setup: {
+        await bikesDatabaseService.setup()
+      },
       getBikes: {
         AsyncStream { continuation in
           let task = Task {
@@ -47,6 +50,9 @@ extension BikesRepo: DependencyKey {
       },
       updateBike: { bike in
         try await bikesDatabaseService.updateBike(bike: bike)
+      },
+      updateBikeToDefault: { id in
+        try await bikesDatabaseService.updateBikeToDefault(id: id)
       },
       deleteBike: { id in
         try await bikesDatabaseService.deleteBike(id: id)

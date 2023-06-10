@@ -17,6 +17,10 @@ public struct SelectionView<T: Identifiable & CustomStringConvertible, Content: 
   private var isRequired: Bool
   private var placeholder: String?
   private let contentBuilder: (T, Binding<Bool>) -> Content
+  private let onTapGesture: () -> Void
+  private var isButtonDisabled: Bool {
+    values.count <= 1 && selectedValue != nil
+  }
   
   public init(
     selectedValue: Binding<T?>,
@@ -25,7 +29,8 @@ public struct SelectionView<T: Identifiable & CustomStringConvertible, Content: 
     placeholder: String?,
     isTextValid: Binding<Bool> = .constant(true),
     errorText: String? = nil,
-    @ViewBuilder contentBuilder: @escaping (T, Binding<Bool>) -> Content
+    @ViewBuilder contentBuilder: @escaping (T, Binding<Bool>) -> Content,
+    onTapGesture: @escaping () -> Void
   ) {
     self._selectedValue = selectedValue
     self._values = values
@@ -34,6 +39,7 @@ public struct SelectionView<T: Identifiable & CustomStringConvertible, Content: 
     self._isTextValid = isTextValid
     self.errorText = errorText
     self.contentBuilder = contentBuilder
+    self.onTapGesture = onTapGesture
   }
   
   public var body: some View {
@@ -62,9 +68,9 @@ public struct SelectionView<T: Identifiable & CustomStringConvertible, Content: 
         } label: {
           Theme.Image.dropDownIcon.value
             .padding(.top, 6)
-            .opacity(values.count > 1 ? 1 : 0.5)
+            .opacity(isButtonDisabled ? 0.5 : 1)
         }
-        .disabled(values.count <= 1)
+        .disabled(isButtonDisabled)
         .popover(present: $isShowingPopover, attributes: {
           $0.sourceFrameInset.top = 30
           $0.position = .absolute(
@@ -95,6 +101,9 @@ public struct SelectionView<T: Identifiable & CustomStringConvertible, Content: 
           .foregroundColor(.red)
           .font(.textFieldPlaceholderFont)
       }
+    }
+    .onTapGesture {
+      self.onTapGesture()
     }
     .animation(.easeInOut, value: isTextValid)
   }

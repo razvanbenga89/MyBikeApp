@@ -35,7 +35,8 @@ let package = Package(
         "Localization",
         "Models",
         "BikesRepo",
-        "RidesFeature"
+        "RidesFeature",
+        "UserDefaultsConfig"
       ]),
       .target(name: "RidesFeature", dependencies: [
         .product(name: "SwiftUINavigation", package: "swiftui-navigation"),
@@ -44,7 +45,8 @@ let package = Package(
         "Localization",
         "Models",
         "BikesRepo",
-        "RidesRepo"
+        "RidesRepo",
+        "UserDefaultsConfig"
       ]),
       .target(name: "SettingsFeature", dependencies: [
         .product(name: "SwiftUINavigation", package: "swiftui-navigation"),
@@ -53,9 +55,11 @@ let package = Package(
         "Localization",
         "Models",
         "Storage",
-        "BikesRepo"
+        "BikesRepo",
+        "UserDefaultsConfig"
       ]),
       .target(name: "AppFeature", dependencies: [
+        .product(name: "Dependencies", package: "swift-dependencies"),
         "BikesFeature",
         "RidesFeature",
         "SettingsFeature",
@@ -98,6 +102,7 @@ let package = Package(
         "RidesRepo"
       ]),
       .target(name: "UserDefaultsConfig", dependencies: [
+        "Models"
       ])
     ]
 )

@@ -89,10 +89,10 @@ public class RidesModel: ObservableObject {
     self.destination = .alert(
       AlertViewState(
         title: ride.name,
-        message: "will be deleted.",
+        message: Localization.deleteAlertMessage,
         actions: [
-          AlertActionState(title: "Cancel", actionType: .cancel),
-          AlertActionState(title: "Delete", style: .destructive, actionType: .delete(ride))
+          AlertActionState(title: Localization.cancelAction, actionType: .cancel),
+          AlertActionState(title: Localization.deleteAction, style: .destructive, actionType: .delete(ride))
         ]
       )
     )
@@ -211,7 +211,7 @@ struct RidesLoadedView: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .principal) {
-          Text("Rides")
+          Text(Localization.ridesTitle)
             .font(.navBarTitleFont)
             .foregroundColor(.white)
         }
@@ -221,7 +221,7 @@ struct RidesLoadedView: View {
           } label: {
             HStack {
               Theme.Image.addIcon.value
-              Text("Add Ride")
+              Text(Localization.addRideAction)
             }
           }
           .font(.navBarItemFont)
@@ -264,7 +264,6 @@ struct RidesEmptyView: View {
       Theme.Image.missingRides.value
         .resizable()
         .scaledToFit()
-        .frame(height: 200)
       ZStack(alignment: .leading) {
         Image.dottedLine
           .resizable()
@@ -280,7 +279,7 @@ struct RidesEmptyView: View {
       
       Spacer()
       
-      Button("Add Ride") {
+      Button(Localization.addRideAction) {
         self.model.didTapAddRide()
       }
       .buttonStyle(PrimaryButtonStyle())

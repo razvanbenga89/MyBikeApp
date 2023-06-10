@@ -12,6 +12,7 @@ public enum UserDefaultsConfig {
   private enum Key {
     static let isServiceReminderOn = "isServiceReminderOn"
     static let distanceUnit = "distanceUnit"
+    static let serviceReminderDistance = "serviceReminderDistance"
   }
   
   @UserDefault(key: Key.isServiceReminderOn, defaultValue: true)
@@ -19,6 +20,9 @@ public enum UserDefaultsConfig {
   
   @UserDefaultRawRepresentable(key: Key.distanceUnit, defaultValue: .km)
   public static var distanceUnit: DistanceUnit
+  
+  @UserDefault(key: Key.serviceReminderDistance, defaultValue: 100)
+  public static var serviceReminderDistance: Int
 }
 
 @propertyWrapper

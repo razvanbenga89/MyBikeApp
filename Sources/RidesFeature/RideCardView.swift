@@ -9,6 +9,7 @@ import SwiftUI
 import Models
 import Theme
 import UserDefaultsConfig
+import Localization
 
 extension Ride {
   public var formattedDate: String {
@@ -90,28 +91,28 @@ public struct RideCardView: View {
       HStack {
         VStack(alignment: .leading) {
           HStack(spacing: 0) {
-            Text("Bike: ")
+            Text(Localization.bike)
               .font(.textFont)
             Text(ride.bikeName)
               .font(.bikeServiceDueFont)
           }
           
           HStack(spacing: 0) {
-            Text("Distance: ")
+            Text(Localization.distance)
               .font(.textFont)
             Text(ride.formattedDistance)
               .font(.bikeServiceDueFont)
           }
           
           HStack(spacing: 0) {
-            Text("Duration: ")
+            Text(Localization.duration)
               .font(.textFont)
             Text("\(ride.formattedDuration)")
               .font(.bikeServiceDueFont)
           }
           
           HStack(spacing: 0) {
-            Text("Date: ")
+            Text(Localization.date)
               .font(.textFont)
             Text(ride.formattedDate)
               .font(.bikeServiceDueFont)

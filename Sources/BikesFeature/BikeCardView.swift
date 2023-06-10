@@ -8,6 +8,7 @@
 import SwiftUI
 import Theme
 import Models
+import Localization
 
 struct BikeCardView: View {  
   private let bike: Bike
@@ -49,11 +50,11 @@ struct BikeCardView: View {
           Text(bike.name)
             .font(.bikeNameFont)
           
-          Text("Wheels: \(bike.wheelSize.description)")
+          Text("\(Localization.wheels)\(bike.wheelSize.description)")
             .font(.textFont)
           
           HStack(spacing: 0) {
-            Text("Service in: ")
+            Text(Localization.serviceIn)
               .font(.textFont)
             Text("\(bike.formattedServiceDue)")
               .font(.bikeServiceDueFont)

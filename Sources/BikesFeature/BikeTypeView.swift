@@ -8,18 +8,19 @@
 import SwiftUI
 import Models
 import Theme
+import Localization
 
 extension BikeType: CustomStringConvertible {
   public var description: String {
     switch self {
     case .mtb:
-      return "Mountain Bike"
+      return Localization.mountainBikeType
     case .road:
-      return "Road Bike"
+      return Localization.roadBikeType
     case .electric:
-      return "Electric Bike"
+      return Localization.electricBikeType
     case .hybrid:
-      return "Hybrid Bike"
+      return Localization.hybridBikeType
     }
   }
 }

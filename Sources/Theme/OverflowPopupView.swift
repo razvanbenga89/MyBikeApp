@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Popovers
+import Localization
 
 public struct OverflowPopupView: View {
   @State private var isShowingPopover = false
@@ -41,7 +42,7 @@ public struct OverflowPopupView: View {
           } label: {
             HStack {
               Theme.Image.editIcon.value
-              Text("Edit")
+              Text(Localization.editAction)
             }
           }
           
@@ -51,7 +52,7 @@ public struct OverflowPopupView: View {
           } label: {
             HStack {
               Theme.Image.deleteIcon.value
-              Text("Delete")
+              Text(Localization.deleteAction)
             }
           }
         }

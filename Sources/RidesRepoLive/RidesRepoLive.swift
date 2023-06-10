@@ -16,12 +16,21 @@ extension RidesRepo: DependencyKey {
     let ridesDatabaseService = RidesDatabaseService()
     
     return Self(
+      setup: {
+        await ridesDatabaseService.setup()
+      },
       getRides: {
-        ridesDatabaseService.fetchRides()
-          .map {
-            $0.compactMap(Ride.init)
+        AsyncStream { continuation in
+          let task = Task {
+            for await value in await ridesDatabaseService.fetchRides() {
+              continuation.yield(value.compactMap(Ride.init))
+            }
           }
-          .eraseToStream()
+          
+          continuation.onTermination = { _ in
+            task.cancel()
+          }
+        }
       },
       addNewRide: { ride in
         try await ridesDatabaseService.addNewRide(ride: ride)

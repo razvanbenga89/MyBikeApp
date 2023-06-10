@@ -32,8 +32,8 @@ public enum DistanceUnit: String, CaseIterable, Identifiable {
     self
   }
   
-  case mi = "MI"
   case km = "KM"
+  case mi = "MI"
   
   public var unitLength: UnitLength {
     switch self {

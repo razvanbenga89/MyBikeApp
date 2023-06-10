@@ -9,6 +9,7 @@ import SwiftUI
 import Theme
 import Models
 import UserDefaultsConfig
+import Localization
 
 extension BikeType {
   var chartDescription: String {
@@ -72,7 +73,7 @@ struct RidesChartView: View {
     VStack(spacing: 10) {
       HStack {
         Theme.Image.statsIcon.value
-        Text("All Rides Statistics")
+        Text(Localization.allRidesStatistics)
         
         Spacer()
       }

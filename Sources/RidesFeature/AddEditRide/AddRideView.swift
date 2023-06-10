@@ -31,8 +31,9 @@ public class RideBaseModel: ObservableObject {
   @Published var formattedDistance: String = ""
   @Published var distance: String = "" {
     didSet {
-      if let _ = Double(distance) {
-        formattedDistance = String(distance.prefix(5))
+      let newDistance = distance.removeDuplicateCharacters(input: ".")
+      if let _ = Double(newDistance) {
+        formattedDistance = newDistance
         isDistanceFieldValid = true
       } else {
         isDistanceFieldValid = false
@@ -79,7 +80,7 @@ public class RideBaseModel: ObservableObject {
   func load() async {
     for await bikes in bikesRepo.getBikes() {
       self.bikes = bikes
-      self.selectedBike = bikes.first(where: { $0.isDefault })
+      self.selectedBike = bikes.first(where: { $0.isDefault }) ?? bikes.first
     }
   }
   
@@ -119,15 +120,47 @@ public class RideBaseModel: ObservableObject {
       duration = "\(selectedHours)h, \(selectedMinutes)min"
     }
   }
+  
+  func scheduleNotification(with updatedDistance: Double) {
+    guard UserDefaultsConfig.isServiceReminderOn,
+          let bike = self.selectedBike else {
+      return
+    }
+    
+    UNUserNotificationCenter.current()
+      .removePendingNotificationRequests(
+        withIdentifiers: [bike.id.uuidString]
+      )
+    
+    let ridesTotalDistance = bike.ridesTotalDistance + updatedDistance
+    
+    if ridesTotalDistance >= bike.serviceDue - Double(UserDefaultsConfig.serviceReminderDistance) {
+      let content = UNMutableNotificationContent()
+      content.title = bike.name
+      
+      let serviceDue = bike.serviceDue - ridesTotalDistance
+      if let formattedServiceDue = NumberFormatter.distanceNumberFormatter.string(from: NSNumber(value: serviceDue)) {
+        content.subtitle = serviceDue > 0 ? "\(Localization.notificationServiceIn)\(formattedServiceDue)\(UserDefaultsConfig.distanceUnit.description.lowercased())" : Localization.notificationServiceOverdue
+      }
+      
+      content.sound = UNNotificationSound.default
+      content.userInfo = ["bikeColor" : bike.color]
+      
+      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+      let request = UNNotificationRequest(identifier: bike.id.uuidString, content: content, trigger: trigger)
+      
+      UNUserNotificationCenter.current().add(request)
+    }
+  }
 }
 
 public class AddRideModel: RideBaseModel {
   override var screenTitle: String {
-    "Add Ride"
+    Localization.addRideTitle
   }
   
   override var submitButtonTitle: String {
-    "Add Ride"
+    Localization.addRideAction
   }
   
   @MainActor
@@ -151,6 +184,7 @@ public class AddRideModel: RideBaseModel {
       )
       
       try await ridesRepo.addNewRide(newRide)
+      scheduleNotification(with: newRide.distance)
       onFinish()
     } catch {
     }
@@ -161,11 +195,11 @@ public class EditRideModel: RideBaseModel {
   private let ride: Ride
   
   override var screenTitle: String {
-    "Edit Ride"
+    Localization.editRideTitle
   }
   
   override var submitButtonTitle: String {
-    "Save"
+    Localization.saveAction
   }
   
   public init(ride: Ride) {
@@ -213,6 +247,7 @@ public class EditRideModel: RideBaseModel {
       )
       
       try await ridesRepo.updateRide(newRide)
+      scheduleNotification(with: newRide.distance - ride.distance)
       onFinish()
     } catch {
     }
@@ -227,6 +262,7 @@ public struct AddRideView: View {
   
   @ObservedObject var model: RideBaseModel
   @FocusState private var focusedField: Field?
+  private let rideNameTextFieldId = "rideNameTextFieldId"
   
   public init(model: RideBaseModel) {
     self.model = model
@@ -234,75 +270,94 @@ public struct AddRideView: View {
   
   public var body: some View {
     NavigationView {
-      VStack {
-        VStack(spacing: 20) {
-          CustomTextField(
-            text: self.$model.rideName,
-            isTextValid: self.$model.isRideNameFieldValid,
-            placeholder: "Ride Title",
-            errorText: "Required Field"
-          )
-          .focused(self.$focusedField, equals: .rideName)
-          .submitLabel(.done)
-          
-          SelectionView(
-            selectedValue: self.$model.selectedBike,
-            values: self.$model.bikes,
-            isRequired: true,
-            placeholder: "Bike",
-            isTextValid: self.$model.isBikeSelectionFieldValid,
-            errorText: "Required Field",
-            contentBuilder: { selectedValue, $isSelectionViewShown in
-              Button {
-                isSelectionViewShown = false
-                self.model.selectedBike = selectedValue
-              } label: {
-                Text(selectedValue.name)
-                  .foregroundColor(.white)
+      ScrollViewReader { proxy in
+        ScrollView(showsIndicators: false) {
+          VStack(spacing: 20) {
+            CustomTextField(
+              text: self.$model.rideName,
+              isTextValid: self.$model.isRideNameFieldValid,
+              placeholder: Localization.rideTitlePlaceholder,
+              errorText: Localization.requiredFieldMessage
+            )
+            .focused(self.$focusedField, equals: .rideName)
+            .submitLabel(.done)
+            .id(rideNameTextFieldId)
+            
+            SelectionView(
+              selectedValue: self.$model.selectedBike,
+              values: self.$model.bikes,
+              isRequired: true,
+              placeholder: Localization.bikePlaceholder,
+              isTextValid: self.$model.isBikeSelectionFieldValid,
+              errorText: Localization.requiredFieldMessage,
+              contentBuilder: { selectedValue, $isSelectionViewShown in
+                Button {
+                  isSelectionViewShown = false
+                  self.model.selectedBike = selectedValue
+                } label: {
+                  Text(selectedValue.name)
+                    .foregroundColor(.white)
+                }
+                .frame(width: 100, height: 40)
+              },
+              onTapGesture: {
+                self.focusedField = nil
               }
-              .frame(width: 100, height: 40)
+            )
+            
+            CustomTextField(
+              text: self.$model.formattedDistance,
+              isTextValid: self.$model.isDistanceFieldValid,
+              onChangeText: {
+                self.model.distance = $0
+              },
+              placeholder: Localization.distancePlaceholder,
+              errorText: Localization.requiredFieldMessage,
+              description: self.model.selectedDistanceUnit.description
+            )
+            .focused(self.$focusedField, equals: .distance)
+            .keyboardType(.decimalPad)
+            
+            RideDurationPickerView(
+              duration: self.$model.duration,
+              selectedHours: self.$model.selectedHours,
+              selectedMinutes: self.$model.selectedMinutes,
+              isFieldValid: self.$model.isDurationFieldValid,
+              onTapGesture: {
+                self.focusedField = nil
+              }
+            )
+            
+            RideDatePickerView(
+              formattedDate: self.$model.formattedDate,
+              selectedDate: self.$model.selectedDate,
+              isFieldValid: self.$model.isDateFieldValid,
+              onTapGesture: {
+                self.focusedField = nil
+              }
+            )
+            
+            Button(self.model.submitButtonTitle) {
+              self.focusedField = nil
+              Task {
+                await self.model.didTapSubmit()
+              }
             }
-          )
-          
-          CustomTextField(
-            text: self.$model.formattedDistance,
-            isTextValid: self.$model.isDistanceFieldValid,
-            onChangeText: {
-              self.model.distance = $0
-            },
-            placeholder: "Distance",
-            errorText: "Required Field",
-            description: self.model.selectedDistanceUnit.description
-          )
-          .focused(self.$focusedField, equals: .distance)
-          .keyboardType(.decimalPad)
-          
-          RideDurationPickerView(
-            duration: self.$model.duration,
-            selectedHours: self.$model.selectedHours,
-            selectedMinutes: self.$model.selectedMinutes,
-            isFieldValid: self.$model.isDurationFieldValid
-          )
-          
-          RideDatePickerView(
-            formattedDate: self.$model.formattedDate,
-            selectedDate: self.$model.selectedDate,
-            isFieldValid: self.$model.isDateFieldValid
-          )
-
-          Button(self.model.submitButtonTitle) {
-            Task {
-              await self.model.didTapSubmit()
+            .buttonStyle(PrimaryButtonStyle())
+            .padding(.top)
+            
+            Spacer()
+          }
+          .padding(.horizontal)
+        }
+        .onChange(of: focusedField) { newValue in
+          if newValue == nil {
+            withAnimation {
+              proxy.scrollTo(rideNameTextFieldId, anchor: .top)
             }
           }
-          .buttonStyle(PrimaryButtonStyle())
-          .padding(.top)
-          
-          Spacer()
         }
-        .padding()
       }
-      .frame(maxHeight: .infinity)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .principal) {
@@ -316,9 +371,11 @@ public struct AddRideView: View {
           }
           .font(.navBarItemFont)
         }
-        ToolbarItem(placement: .keyboard) {
-          Button("Done") {
-            focusedField = nil
+        if focusedField == .distance {
+          ToolbarItem(placement: .keyboard) {
+            Button(Localization.doneAction) {
+              focusedField = nil
+            }
           }
         }
       }

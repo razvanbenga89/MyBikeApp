@@ -46,23 +46,23 @@ extension Bike {
   }
 }
 
-public class BikesDatabaseService {
+public actor BikesDatabaseService {
   private let contextProvider: ContextProvider
   private var continuationsPool: [AsyncStream<[BikeEntity]>.Continuation] = []
   
   public init(contextProvider: ContextProvider = .sharedInstance) {
     self.contextProvider = contextProvider
-    
-    NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(managedObjectContextObjectsDidChange),
-      name: NSNotification.Name.NSManagedObjectContextObjectsDidChange,
-      object: contextProvider.viewContext
-    )
   }
   
-  public func addNewBike(bike: Bike) async throws {
-    let context = contextProvider.newBackgroundContext
+  public func setup() {
+    Task { [weak self] in
+      await self?.startListener()
+    }
+  }
+  
+  public nonisolated func addNewBike(bike: Bike) async throws {
+    let context = contextProvider.viewContext
+    
     try await context.perform {
       if bike.isDefault {
         let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
@@ -81,67 +81,9 @@ public class BikesDatabaseService {
       
       let bikeServiceDue = Measurement(value: bike.serviceDue, unit: UserDefaultsConfig.distanceUnit.unitLength)
       entity.serviceDue = bikeServiceDue.converted(to: .kilometers).value
-
-      try context.save()
-    }
-//    try await withCheckedThrowingContinuation { continuation in
-//      let context = contextProvider.viewContext
-//
-//      context.perform {
-//        if bike.isDefault {
-//          let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
-//          entities.forEach {
-//            $0.isDefault = false
-//          }
-//        }
-//
-//        let entity = BikeEntity(context: context)
-//        entity.bikeId = bike.id
-//        entity.name = bike.name
-//        entity.color = bike.color
-//        entity.isDefault = bike.isDefault
-//        entity.type = Int32(bike.type.rawValue)
-//        entity.wheelSize = Int32(bike.wheelSize.rawValue)
-//
-//        let bikeServiceDue = Measurement(value: bike.serviceDue, unit: UserDefaultsConfig.distanceUnit.unitLength)
-//        entity.serviceDue = bikeServiceDue.converted(to: .kilometers).value
-//
-//        if context.saveIfNeeded() {
-//          continuation.resume()
-//        } else {
-//          continuation.resume(throwing: DBError.addEntityFailed)
-//        }
-//      }
-//   }
-  }
-  
-  public func updateBike(bike: Bike) async throws {
-    try await withCheckedThrowingContinuation { continuation in
-      let context = contextProvider.viewContext
       
-      context.perform {
-        let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
-        entities.forEach { entity in
-          if entity.bikeId == bike.id {
-            entity.bikeId = bike.id
-            entity.name = bike.name
-            entity.color = bike.color
-            entity.isDefault = bike.isDefault
-            entity.type = Int32(bike.type.rawValue)
-            entity.wheelSize = Int32(bike.wheelSize.rawValue)
-            
-            let bikeServiceDue = Measurement(value: bike.serviceDue, unit: UserDefaultsConfig.distanceUnit.unitLength)
-            entity.serviceDue = bikeServiceDue.converted(to: .kilometers).value
-          } else {
-            entity.isDefault = false
-          }
-        }
-        
-        if context.saveIfNeeded() {
-          continuation.resume()
-        } else {
-          continuation.resume(throwing: DBError.updateEntityFailed)
-        }
+      guard context.saveIfNeeded() else {
+        throw DBError.addEntityFailed
       }
     }
   }
@@ -152,8 +94,10 @@ public class BikesDatabaseService {
       let entities: [BikeEntity] = BikeEntity.fetchAll(context: self.contextProvider.viewContext, sortDescriptors: sortDescriptors)
       continuation.yield(entities)
       
-      continuation.onTermination = { [weak self] _ in
-        self?.removeLastContinuation()
+      continuation.onTermination = { _ in
+        Task { [weak self] in
+          await self?.removeLastContinuation()
+        }
       }
       
       self.continuationsPool.append(continuation)
@@ -162,48 +106,89 @@ public class BikesDatabaseService {
     return stream
   }
   
-  public func fetchBike(id: UUID) async throws -> BikeEntity {
-    try await withCheckedThrowingContinuation { continuation in
-      let context = contextProvider.viewContext
-      
-      context.perform {
-        let predicate = NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(id)")
-        guard let entity = BikeEntity.fetchFirst(context: context, predicate: predicate) as? BikeEntity else {
-          continuation.resume(throwing: DBError.entityNotFound)
-          return
-        }
-        
-        continuation.resume(with: .success(entity))
-      }
-    }
-  }
-  
-  public func deleteBike(id: UUID) async throws {
-    try await withCheckedThrowingContinuation { continuation in
-      let context = contextProvider.viewContext
-      
-      context.perform {
-        let predicate = NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(id)")
-        if let entity = BikeEntity.fetchFirst(context: context, predicate: predicate) {
-          context.delete(entity)
-        }
-        
-        if context.saveIfNeeded() {
-          continuation.resume()
+  public nonisolated func updateBike(bike: Bike) async throws {
+    let context = contextProvider.viewContext
+    
+    try await context.perform {
+      let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
+      entities.forEach { entity in
+        if entity.bikeId == bike.id {
+          entity.bikeId = bike.id
+          entity.name = bike.name
+          entity.color = bike.color
+          entity.isDefault = bike.isDefault
+          entity.type = Int32(bike.type.rawValue)
+          entity.wheelSize = Int32(bike.wheelSize.rawValue)
+          
+          let bikeServiceDue = Measurement(value: bike.serviceDue, unit: UserDefaultsConfig.distanceUnit.unitLength)
+          entity.serviceDue = bikeServiceDue.converted(to: .kilometers).value
         } else {
-          continuation.resume(throwing: DBError.deleteEntityFailed)
+          entity.isDefault = false
         }
+      }
+      
+      guard context.saveIfNeeded() else {
+        throw DBError.updateEntityFailed
       }
     }
   }
   
-  @objc private func managedObjectContextObjectsDidChange(notification: NSNotification) {
-    guard let updatedContext = notification.object as? NSManagedObjectContext else {
-      return
+  public nonisolated func updateBikeToDefault(id: UUID) async throws {
+    let context = contextProvider.viewContext
+    
+    try await context.perform {
+      let entities: [BikeEntity] = BikeEntity.fetchAll(context: context)
+      entities.forEach { entity in
+        entity.isDefault = entity.bikeId == id
+      }
+      
+      guard context.saveIfNeeded() else {
+        throw DBError.updateEntityFailed
+      }
+    }
+  }
+  
+  public nonisolated func fetchBike(id: UUID) async throws -> BikeEntity {
+    let context = contextProvider.viewContext
+    
+    let entity = try await context.perform {
+      let predicate = NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(id)")
+      guard let entity = BikeEntity.fetchFirst(context: context, predicate: predicate) as? BikeEntity else {
+        throw DBError.entityNotFound
+      }
+      
+      return entity
     }
     
-    if updatedContext === contextProvider.viewContext {
-      update(updatedContext)
+    return entity
+  }
+  
+  public nonisolated func deleteBike(id: UUID) async throws {
+    let context = contextProvider.viewContext
+    
+    try await context.perform {
+      let predicate = NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(id)")
+      guard let entity = BikeEntity.fetchFirst(context: context, predicate: predicate) else {
+        throw DBError.entityNotFound
+      }
+      
+      context.delete(entity)
+      
+      guard context.saveIfNeeded() else {
+        throw DBError.deleteEntityFailed
+      }
+    }
+  }
+  
+  private func startListener() async {
+    for await notification in NotificationCenter.default.notifications(
+      named: NSNotification.Name.NSManagedObjectContextObjectsDidChange,
+      object: contextProvider.viewContext
+    ) {
+      if let updatedContext = notification.object as? NSManagedObjectContext,
+         updatedContext === contextProvider.viewContext {
+        update(updatedContext)
+      }
     }
   }
   

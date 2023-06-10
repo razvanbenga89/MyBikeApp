@@ -37,75 +37,66 @@ extension Ride {
   }
 }
 
-public class RidesDatabaseService {
+public actor RidesDatabaseService {
   private let contextProvider: ContextProvider
   private var continuationsPool: [AsyncStream<[RideEntity]>.Continuation] = []
   
   public init(contextProvider: ContextProvider = .sharedInstance) {
     self.contextProvider = contextProvider
-    
-    NotificationCenter.default.addObserver(
-      self,
-      selector: #selector(managedObjectContextObjectsDidChange),
-      name: NSNotification.Name.NSManagedObjectContextObjectsDidChange,
-      object: contextProvider.viewContext
-    )
   }
   
-  public func addNewRide(ride: Ride) async throws {
-    try await withCheckedThrowingContinuation { continuation in
-      let context = contextProvider.viewContext
+  public func setup() {
+    Task { [weak self] in
+      await self?.startListener()
+    }
+  }
+  
+  public nonisolated func addNewRide(ride: Ride) async throws {
+    let context = contextProvider.viewContext
+    
+    try await context.perform {
+      let entity = RideEntity(context: context)
+      entity.rideId = ride.id
+      entity.name = ride.name
+      entity.duration = Int32(ride.duration)
+      entity.date = ride.date
+      let bikeEntity = BikeEntity.fetchFirst(
+        context: context,
+        predicate: NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(ride.bikeId)")
+      ) as? BikeEntity
+      entity.bike = bikeEntity
       
-      context.perform {
-        let entity = RideEntity(context: context)
-        entity.rideId = ride.id
+      let rideDistance = Measurement(value: ride.distance, unit: UserDefaultsConfig.distanceUnit.unitLength)
+      entity.distance = rideDistance.converted(to: UnitLength.kilometers).value
+      
+      guard context.saveIfNeeded() else {
+        throw DBError.addEntityFailed
+      }
+    }
+  }
+  
+  public nonisolated func updateRide(ride: Ride) async throws {
+    let context = contextProvider.viewContext
+    
+    try await context.perform {
+      let predicate = NSPredicate(format: "%K = %@", #keyPath(RideEntity.rideId), "\(ride.id)")
+      if let entity = RideEntity.fetchFirst(context: context, predicate: predicate) as? RideEntity {
         entity.name = ride.name
         entity.duration = Int32(ride.duration)
         entity.date = ride.date
+        
+        let rideDistance = Measurement(value: ride.distance, unit: UserDefaultsConfig.distanceUnit.unitLength)
+        entity.distance = rideDistance.converted(to: UnitLength.kilometers).value
+        
         let bikeEntity = BikeEntity.fetchFirst(
           context: context,
           predicate: NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(ride.bikeId)")
         ) as? BikeEntity
         entity.bike = bikeEntity
-        
-        let rideDistance = Measurement(value: ride.distance, unit: UserDefaultsConfig.distanceUnit.unitLength)
-        entity.distance = rideDistance.converted(to: UnitLength.kilometers).value
-        
-        if context.saveIfNeeded() {
-          continuation.resume()
-        } else {
-          continuation.resume(throwing: DBError.addEntityFailed)
-        }
       }
-    }
-  }
-  
-  public func updateRide(ride: Ride) async throws {
-    try await withCheckedThrowingContinuation { continuation in
-      let context = contextProvider.viewContext
       
-      context.perform {
-        let predicate = NSPredicate(format: "%K = %@", #keyPath(RideEntity.rideId), "\(ride.id)")
-        if let entity = RideEntity.fetchFirst(context: context, predicate: predicate) as? RideEntity {
-          entity.name = ride.name
-          entity.duration = Int32(ride.duration)
-          entity.date = ride.date
-          
-          let rideDistance = Measurement(value: ride.distance, unit: UserDefaultsConfig.distanceUnit.unitLength)
-          entity.distance = rideDistance.converted(to: UnitLength.kilometers).value
-          
-          let bikeEntity = BikeEntity.fetchFirst(
-            context: context,
-            predicate: NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(ride.bikeId)")
-          ) as? BikeEntity
-          entity.bike = bikeEntity
-        }
-        
-        if context.saveIfNeeded() {
-          continuation.resume()
-        } else {
-          continuation.resume(throwing: DBError.updateEntityFailed)
-        }
+      guard context.saveIfNeeded() else {
+        throw DBError.updateEntityFailed
       }
     }
   }
@@ -116,8 +107,10 @@ public class RidesDatabaseService {
       let entities: [RideEntity] = RideEntity.fetchAll(context: self.contextProvider.viewContext, sortDescriptors: sortDescriptors)
       continuation.yield(entities)
       
-      continuation.onTermination = { [weak self] _ in
-        self?.removeLastContinuation()
+      continuation.onTermination = { _ in
+        Task { [weak self] in
+          await self?.removeLastContinuation()
+        }
       }
       
       self.continuationsPool.append(continuation)
@@ -126,32 +119,30 @@ public class RidesDatabaseService {
     return stream
   }
   
-  public func deleteRide(id: UUID) async throws {
-    try await withCheckedThrowingContinuation { continuation in
-      let context = contextProvider.viewContext
+  public nonisolated func deleteRide(id: UUID) async throws {
+    let context = contextProvider.viewContext
+    
+    try await context.perform {
+      let predicate = NSPredicate(format: "%K = %@", #keyPath(RideEntity.rideId), "\(id)")
+      if let entity = RideEntity.fetchFirst(context: context, predicate: predicate) {
+        context.delete(entity)
+      }
       
-      context.perform {
-        let predicate = NSPredicate(format: "%K = %@", #keyPath(RideEntity.rideId), "\(id)")
-        if let entity = RideEntity.fetchFirst(context: context, predicate: predicate) {
-          context.delete(entity)
-        }
-        
-        if context.saveIfNeeded() {
-          continuation.resume()
-        } else {
-          continuation.resume(throwing: DBError.deleteEntityFailed)
-        }
+      guard context.saveIfNeeded() else {
+        throw DBError.deleteEntityFailed
       }
     }
   }
   
-  @objc private func managedObjectContextObjectsDidChange(notification: NSNotification) {
-    guard let updatedContext = notification.object as? NSManagedObjectContext else {
-      return
-    }
-    
-    if updatedContext === contextProvider.viewContext {
-      update(updatedContext)
+  private func startListener() async {
+    for await notification in NotificationCenter.default.notifications(
+      named: NSNotification.Name.NSManagedObjectContextObjectsDidChange,
+      object: contextProvider.viewContext
+    ) {
+      if let updatedContext = notification.object as? NSManagedObjectContext,
+         updatedContext === contextProvider.viewContext {
+        update(updatedContext)
+      }
     }
   }
   

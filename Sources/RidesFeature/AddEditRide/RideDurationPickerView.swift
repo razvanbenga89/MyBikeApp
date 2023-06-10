@@ -8,6 +8,7 @@
 import SwiftUI
 import Theme
 import Popovers
+import Localization
 
 struct RideDurationPickerView: View {
   @Binding var duration: String
@@ -17,17 +18,20 @@ struct RideDurationPickerView: View {
   @State var isShowingPopover: Bool = false
   @State private var hours: Int
   @State private var minutes: Int
+  private let onTapGesture: () -> Void
   
   init(
     duration: Binding<String>,
     selectedHours: Binding<Int>,
     selectedMinutes: Binding<Int>,
-    isFieldValid: Binding<Bool>
+    isFieldValid: Binding<Bool>,
+    onTapGesture: @escaping () -> Void
   ) {
     self._duration = duration
     self._selectedHours = selectedHours
     self._selectedMinutes = selectedMinutes
     self._isFieldValid = isFieldValid
+    self.onTapGesture = onTapGesture
     self.hours = selectedHours.wrappedValue
     self.minutes = selectedMinutes.wrappedValue
   }
@@ -36,15 +40,18 @@ struct RideDurationPickerView: View {
     CustomTextField(
       text: $duration,
       isTextValid: $isFieldValid,
-      placeholder: "Duration",
-      errorText: "Required Field"
+      placeholder: Localization.durationPlaceholder,
+      errorText: Localization.requiredFieldMessage
     )
     .disabled(true)
     .onTapGesture {
       isFieldValid = true
       isShowingPopover = true
+      onTapGesture()
     }
-    .popover(present: $isShowingPopover) {
+    .popover(present: $isShowingPopover, attributes: {
+      $0.rubberBandingMode = .none
+    }) {
       Templates.Container(
         backgroundColor: Theme.AppColor.appGreyBlue.value,
         padding: 0
@@ -52,7 +59,7 @@ struct RideDurationPickerView: View {
         VStack {
           HStack(spacing: 0) {
             VStack {
-              Text("Hours")
+              Text(Localization.hours)
               
               Picker("", selection: $hours) {
                 ForEach(0..<21) {
@@ -64,7 +71,7 @@ struct RideDurationPickerView: View {
             }
             
             VStack {
-              Text("Minutes")
+              Text(Localization.minutes)
               
               Picker("", selection: $minutes) {
                 ForEach(0..<60) {
@@ -82,7 +89,7 @@ struct RideDurationPickerView: View {
             self.selectedHours = self.hours
             self.selectedMinutes = self.minutes
           } label: {
-            Text("Save")
+            Text(Localization.saveAction)
           }
           .buttonStyle(PrimaryButtonStyle())
         }
@@ -90,7 +97,6 @@ struct RideDurationPickerView: View {
         .background(Theme.AppColor.appGreyBlue.value)
       }
     }
-
   }
 }
 
@@ -100,7 +106,8 @@ struct RideDurationPickerView_Previews: PreviewProvider {
       duration: .constant(""),
       selectedHours: .constant(0),
       selectedMinutes: .constant(0),
-      isFieldValid: .constant(true)
+      isFieldValid: .constant(true),
+      onTapGesture: {}
     )
   }
 }

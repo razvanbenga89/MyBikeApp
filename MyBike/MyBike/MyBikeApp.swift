@@ -8,9 +8,25 @@
 import SwiftUI
 import AppFeature
 
-final class AppDelegate: NSObject, UIApplicationDelegate {
+final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+  var willPresentNotification: ((UNNotification) -> Void)?
+  
   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    true
+    UNUserNotificationCenter.current().delegate = self
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+    return true
+  }
+  
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void)
+  {
+    // Update the app interface directly.
+    willPresentNotification?(notification)
+    
+    // Show a banner
+    completionHandler(.sound)
   }
 }
 
@@ -20,8 +36,17 @@ struct MyBikeApp: App {
   
   var body: some Scene {
     WindowGroup {
-      AppView(model: AppViewModel())
+      AppView(model: buildAppModel())
         .preferredColorScheme(.dark)
     }
+  }
+  
+  func buildAppModel() -> AppModel {
+    let model = AppModel()
+    appDelegate.willPresentNotification = {
+      model.willPresentNotification($0)
+    }
+    
+    return model
   }
 }

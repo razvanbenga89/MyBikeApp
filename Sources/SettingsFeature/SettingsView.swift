@@ -12,9 +12,11 @@ import BikesRepo
 import Storage
 import Dependencies
 import UserDefaultsConfig
+import Popovers
+import Localization
 
 public class SettingsModel: ObservableObject {
-  @Published var serviceReminder: String = ""
+  @Published var selectedServiceReminder: String
   @Published var isServiceReminderOn: Bool
   
   @Published var selectedBike: Bike? = nil
@@ -32,6 +34,7 @@ public class SettingsModel: ObservableObject {
   public init() {
     self.selectedDistanceUnit = UserDefaultsConfig.distanceUnit
     self.isServiceReminderOn = UserDefaultsConfig.isServiceReminderOn
+    self.selectedServiceReminder = "\(UserDefaultsConfig.serviceReminderDistance)"
   }
   
   @MainActor
@@ -39,6 +42,21 @@ public class SettingsModel: ObservableObject {
     for await bikes in bikesRepo.getBikes() {
       self.bikes = bikes
       self.selectedBike = bikes.first(where: { $0.isDefault })
+    }
+  }
+  
+  func didSelectServiceReminder(_ value: Int) {
+    self.selectedServiceReminder = "\(value)"
+    UserDefaultsConfig.serviceReminderDistance = value
+  }
+  
+  @MainActor
+  func didSelectDefaultBike(_ bike: Bike) async {
+    do {
+      try await bikesRepo.updateBikeToDefault(bike.id)
+      self.selectedBike = bike
+    } catch {
+      
     }
   }
 }
@@ -50,6 +68,7 @@ public struct SettingsView: View {
   
   @ObservedObject var model: SettingsModel
   @FocusState private var focusedField: Field?
+  @State private var isShowingPopover: Bool = false
   
   public init(model: SettingsModel) {
     self.model = model
@@ -62,7 +81,7 @@ public struct SettingsView: View {
           selectedValue: self.$model.selectedDistanceUnit,
           values: self.$model.distanceUnits,
           isRequired: false,
-          placeholder: "Distance Units",
+          placeholder: Localization.distanceUnitsPlaceholder,
           contentBuilder: { selectedValue, $isSelectionViewShown in
             Button {
               isSelectionViewShown = false
@@ -72,22 +91,22 @@ public struct SettingsView: View {
                 .foregroundColor(.white)
             }
             .frame(width: 100, height: 40)
-          }
+          },
+          onTapGesture: {}
         )
         
         VStack(alignment: .leading) {
-          Text("Service Reminder")
+          Text(Localization.serviceReminderPlaceholder)
             .font(.textFieldPlaceholderFont)
             .foregroundColor(Theme.AppColor.appGrey.value)
           
           HStack(alignment: .center) {
-            CustomTextField(
-              text: self.$model.serviceReminder,
-              isRequired: false,
-              description: self.model.selectedDistanceUnit.description
-            )
-            .keyboardType(.decimalPad)
-            .focused(self.$focusedField, equals: .serviceReminder)
+            ServiceReminderPickerView(
+              selectedServiceReminder: self.$model.selectedServiceReminder,
+              description: self.model.selectedDistanceUnit.description,
+              didTapSave: {
+                self.model.didSelectServiceReminder($0)
+              })
             
             Toggle("", isOn: self.$model.isServiceReminderOn)
               .labelsHidden()
@@ -101,17 +120,20 @@ public struct SettingsView: View {
           selectedValue: self.$model.selectedBike,
           values: self.$model.bikes,
           isRequired: false,
-          placeholder: "Default Bike",
+          placeholder: Localization.defaultBikePlaceholder,
           contentBuilder: { selectedValue, $isSelectionViewShown in
             Button {
               isSelectionViewShown = false
-              self.model.selectedBike = selectedValue
+              Task {
+                await self.model.didSelectDefaultBike(selectedValue)
+              }
             } label: {
               Text(selectedValue.name)
                 .foregroundColor(.white)
             }
             .frame(width: 100, height: 40)
-          }
+          },
+          onTapGesture: {}
         )
         
         Spacer()
@@ -124,15 +146,9 @@ public struct SettingsView: View {
       )
       .toolbar {
         ToolbarItem(placement: .principal) {
-          Text("Settings")
+          Text(Localization.settingsTitle)
             .font(.navBarTitleFont)
             .foregroundColor(.white)
-        }
-        
-        ToolbarItem(placement: .keyboard) {
-          Button("Done") {
-            focusedField = nil
-          }
         }
       }
     }

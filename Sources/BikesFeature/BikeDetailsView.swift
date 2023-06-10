@@ -11,6 +11,7 @@ import Models
 import Dependencies
 import SwiftUINavigation
 import RidesFeature
+import Localization
 
 public class BikeDetailsModel: ObservableObject {
   public enum Destination {
@@ -52,10 +53,10 @@ public class BikeDetailsModel: ObservableObject {
     self.destination = .alert(
       AlertViewState(
         title: bike.name,
-        message: "will be deleted.",
+        message: Localization.deleteAlertMessage,
         actions: [
-          AlertActionState(title: "Cancel", actionType: .cancel),
-          AlertActionState(title: "Delete", style: .destructive, actionType: .deleteBike(bike))
+          AlertActionState(title: Localization.cancelAction, actionType: .cancel),
+          AlertActionState(title: Localization.deleteAction, style: .destructive, actionType: .deleteBike(bike))
         ]
       )
     )
@@ -65,10 +66,10 @@ public class BikeDetailsModel: ObservableObject {
     self.destination = .alert(
       AlertViewState(
         title: ride.name,
-        message: "will be deleted.",
+        message: Localization.deleteAlertMessage,
         actions: [
-          AlertActionState(title: "Cancel", actionType: .cancel),
-          AlertActionState(title: "Delete", style: .destructive, actionType: .deleteRide(ride))
+          AlertActionState(title: Localization.cancelAction, actionType: .cancel),
+          AlertActionState(title: Localization.deleteAction, style: .destructive, actionType: .deleteRide(ride))
         ]
       )
     )
@@ -138,11 +139,11 @@ public struct BikeDetailsView: View {
           
           HStack {
             VStack(alignment: .leading) {
-              Text("Wheels: \(bike.wheelSize.description)")
+              Text("\(Localization.wheels)\(bike.wheelSize.description)")
                 .font(.textFont)
               
               HStack(spacing: 0) {
-                Text("Service in: ")
+                Text(Localization.serviceIn)
                   .font(.textFont)
                 Text("\(bike.formattedServiceDue)")
                   .font(.bikeServiceDueFont)
@@ -157,11 +158,11 @@ public struct BikeDetailsView: View {
           
           HStack {
             VStack(alignment: .leading) {
-              Text("Rides \(bike.rides.count)")
+              Text("\(Localization.rides)\(bike.rides.count)")
                 .font(.textFont)
               
               HStack(spacing: 0) {
-                Text("Total Rides Distance ")
+                Text(Localization.totalRidesDistance)
                   .font(.textFont)
                 Text("\(bike.formattedRidesTotalDistance)")
                   .font(.bikeServiceDueFont)
