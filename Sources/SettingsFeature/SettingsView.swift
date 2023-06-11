@@ -17,7 +17,11 @@ import Localization
 
 public class SettingsModel: ObservableObject {
   @Published var selectedServiceReminder: String
-  @Published var isServiceReminderOn: Bool
+  @Published var isServiceReminderOn: Bool {
+    didSet {
+      UserDefaultsConfig.isServiceReminderOn = isServiceReminderOn
+    }
+  }
   
   @Published var selectedBike: Bike? = nil
   @Published var bikes: [Bike] = []
