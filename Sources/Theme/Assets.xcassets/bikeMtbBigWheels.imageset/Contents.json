@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "bike_mtb_big_wheels.pdf",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

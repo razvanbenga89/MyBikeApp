@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="right" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchScreenBackground" translatesAutoresizingMaskIntoConstraints="NO" id="JS9-dc-X4h">
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="LaunchScreenLogo" translatesAutoresizingMaskIntoConstraints="NO" id="8mY-Fy-Q1V">
+                                <rect key="frame" x="116.66666666666669" y="338.66666666666669" width="160" height="80"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="160" id="61k-Cy-q1n"/>
+                                    <constraint firstAttribute="height" constant="80" id="gEK-lo-LbF"/>
+                                </constraints>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="JS9-dc-X4h" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" id="25o-HK-nur"/>
+                            <constraint firstItem="8mY-Fy-Q1V" firstAttribute="centerX" secondItem="Bcu-3y-fUS" secondAttribute="centerX" id="4PV-ca-eiF"/>
+                            <constraint firstItem="8mY-Fy-Q1V" firstAttribute="centerY" secondItem="Bcu-3y-fUS" secondAttribute="centerY" constant="-60" id="RaM-JT-yph"/>
+                            <constraint firstItem="JS9-dc-X4h" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="XkB-vy-ILF"/>
+                            <constraint firstAttribute="bottom" secondItem="JS9-dc-X4h" secondAttribute="bottom" id="bFT-Nu-wBF"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="trailing" secondItem="JS9-dc-X4h" secondAttribute="trailing" id="dzH-dt-ZpC"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="LaunchScreenBackground" width="1259" height="936"/>
+        <image name="LaunchScreenLogo" width="102" height="85"/>
+    </resources>
+</document>
