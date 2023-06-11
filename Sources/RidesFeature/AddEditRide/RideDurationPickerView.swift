@@ -60,7 +60,7 @@ struct RideDurationPickerView: View {
           HStack(spacing: 0) {
             VStack {
               Text(Localization.hours)
-              
+
               Picker("", selection: $hours) {
                 ForEach(0..<21) {
                   Text(String($0))
@@ -69,10 +69,10 @@ struct RideDurationPickerView: View {
               }
               .pickerStyle(.wheel)
             }
-            
+
             VStack {
               Text(Localization.minutes)
-              
+
               Picker("", selection: $minutes) {
                 ForEach(0..<60) {
                   Text(String($0))
@@ -83,7 +83,7 @@ struct RideDurationPickerView: View {
             }
           }
           .font(.textFont)
-          
+
           Button {
             isShowingPopover = false
             self.selectedHours = self.hours

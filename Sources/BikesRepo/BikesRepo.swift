@@ -22,6 +22,7 @@ public struct BikesRepo {
   public var addNewBike: @Sendable (Bike) async throws -> Void
   public var updateBike: @Sendable (Bike) async throws -> Void
   public var updateBikeToDefault: @Sendable (UUID) async throws -> Void
+  public var updateLatestService: @Sendable (UUID, Date) async throws -> Void
   public var deleteBike: @Sendable (UUID) async throws -> Void
   
   public init(
@@ -31,6 +32,7 @@ public struct BikesRepo {
     addNewBike: @escaping @Sendable (Bike) async throws -> Void,
     updateBike: @escaping @Sendable (Bike) async throws -> Void,
     updateBikeToDefault: @escaping @Sendable (UUID) async throws -> Void,
+    updateLatestService: @escaping @Sendable (UUID, Date) async throws -> Void,
     deleteBike: @escaping @Sendable (UUID) async throws -> Void
   ) {
     self.setup = setup
@@ -39,6 +41,7 @@ public struct BikesRepo {
     self.addNewBike = addNewBike
     self.updateBike = updateBike
     self.updateBikeToDefault = updateBikeToDefault
+    self.updateLatestService = updateLatestService
     self.deleteBike = deleteBike
   }
 }
@@ -51,6 +54,7 @@ extension BikesRepo: TestDependencyKey {
     addNewBike: unimplemented("\(Self.self).addNewBike"),
     updateBike: unimplemented("\(Self.self).updateBike"),
     updateBikeToDefault: unimplemented("\(Self.self).updateBikeToDefault"),
+    updateLatestService: unimplemented("\(Self.self).updateLatestService"),
     deleteBike: unimplemented("\(Self.self).deleteBike")
   )
   
@@ -68,6 +72,7 @@ extension BikesRepo: TestDependencyKey {
     addNewBike: { _ in },
     updateBike: { _ in },
     updateBikeToDefault: { _ in },
+    updateLatestService: { _, _ in },
     deleteBike: { _ in }
   )
 }

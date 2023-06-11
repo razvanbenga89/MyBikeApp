@@ -54,6 +54,9 @@ extension BikesRepo: DependencyKey {
       updateBikeToDefault: { id in
         try await bikesDatabaseService.updateBikeToDefault(id: id)
       },
+      updateLatestService: { id, date in
+        try await bikesDatabaseService.updateLatestService(id: id, date: date)
+      },
       deleteBike: { id in
         try await bikesDatabaseService.deleteBike(id: id)
       }

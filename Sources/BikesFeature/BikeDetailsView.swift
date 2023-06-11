@@ -12,6 +12,21 @@ import Dependencies
 import SwiftUINavigation
 import RidesFeature
 import Localization
+import Popovers
+
+extension Bike {
+  var ridesSortedByDate: [Ride] {
+    rides.sorted(by: { $0.date > $1.date })
+  }
+  
+  var formattedLatestService: String? {
+    guard let latestService = latestService else {
+      return nil
+    }
+    
+    return DateFormatter.rideDateFormatter.string(from: latestService)
+  }
+}
 
 public class BikeDetailsModel: ObservableObject {
   public enum Destination {
@@ -30,6 +45,7 @@ public class BikeDetailsModel: ObservableObject {
   @Published var bike: Bike?
   @Published var shouldRefresh: Bool = false
   @Published var destination: Destination?
+  @Published var latestServiceDate: Date?
   
   var onDelete: () -> Void = unimplemented("onDelete")
   
@@ -116,11 +132,23 @@ public class BikeDetailsModel: ObservableObject {
       }
     }
   }
+  
+  @MainActor
+  func didMarkLatestService() async {
+    guard let latestServiceDate = latestServiceDate else {
+      return
+    }
+    
+    do {
+      try await bikesRepo.updateLatestService(id, latestServiceDate)
+      shouldRefresh.toggle()
+    } catch {}
+  }
 }
 
 public struct BikeDetailsView: View {
   @ObservedObject var model: BikeDetailsModel
-  @State private var isShowingPopover = false
+  @State private var isShowingDatePopover = false
   
   public init(model: BikeDetailsModel) {
     self.model = model
@@ -167,15 +195,49 @@ public struct BikeDetailsView: View {
                 Text("\(bike.formattedRidesTotalDistance)")
                   .font(.bikeServiceDueFont)
               }
+              
+              if let formattedLatestService = bike.formattedLatestService {
+                HStack(spacing: 0) {
+                  Text(Localization.latestService)
+                    .font(.textFont)
+                  Text(formattedLatestService)
+                    .font(.bikeServiceDueFont)
+                }
+              }
             }
             .foregroundColor(.white)
             
             Spacer()
+            
+            Button {
+              self.isShowingDatePopover = true
+            } label: {
+              Image(systemName: "wrench.fill")
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .frame(width: 40, height: 40)
+            .popover(present: $isShowingDatePopover, attributes: {
+              $0.rubberBandingMode = .none
+              $0.position = .absolute(
+                originAnchor: .center,
+                popoverAnchor: .center
+              )
+            }) {
+              DatePickerView(
+                selectedDate: self.$model.latestServiceDate,
+                title: Localization.markLatestService
+              ) {
+                self.isShowingDatePopover = false
+                Task {
+                  await self.model.didMarkLatestService()
+                }
+              }
+            }
           }
           
           ScrollView(showsIndicators: false) {
             LazyVStack {
-              ForEach(bike.rides) { ride in
+              ForEach(bike.ridesSortedByDate) { ride in
                 RideCardView(
                   ride: ride,
                   backgroundColor: Theme.AppColor.appNavy.value,

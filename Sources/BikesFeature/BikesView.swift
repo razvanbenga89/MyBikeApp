@@ -15,7 +15,7 @@ import UserDefaultsConfig
 
 extension Bike {
   var formattedServiceDue: String {
-    let serviceIn = serviceDue - ridesTotalDistance
+    let serviceIn = serviceDue - ridesTotalDistanceAfterLatestService
     
     if serviceIn > 0 {
       return String(format: "%.0f", serviceIn) + UserDefaultsConfig.distanceUnit.description.lowercased()
@@ -33,7 +33,7 @@ extension Bike {
   }
   
   var serviceDuePercentage: Double {
-    ridesTotalDistance / serviceDue
+    ridesTotalDistanceAfterLatestService / serviceDue
   }
 }
 
@@ -55,13 +55,13 @@ public class BikesModel: ObservableObject {
     case delete(Bike)
   }
   
-  @Published var viewState: ViewState
+  @Published var viewState: ViewState?
   @Published var destination: Destination?
   
   @Dependency(\.bikesRepo) var bikesRepo
   
   public init(
-    viewState: ViewState = .empty,
+    viewState: ViewState? = nil,
     destination: Destination? = nil
   ) {
     self.viewState = viewState
@@ -71,10 +71,12 @@ public class BikesModel: ObservableObject {
   @MainActor
   func load() async {
     for await bikes in bikesRepo.getBikes() {
-      if bikes.isEmpty {
-        viewState = .empty
-      } else {
-        viewState = .loadedBikes(bikes)
+      withAnimation {
+        if bikes.isEmpty {
+          viewState = .empty
+        } else {
+          viewState = .loadedBikes(bikes)
+        }
       }
     }
   }
@@ -141,13 +143,18 @@ public struct BikesView: View {
   }
   
   public var body: some View {
-    Switch(self.$model.viewState) {
-      CaseLet(/BikesModel.ViewState.empty) { _ in
-        BikesEmptyView(model: model)
+    IfLet(self.$model.viewState) { viewState in
+      Switch(viewState) {
+        CaseLet(/BikesModel.ViewState.empty) { _ in
+          BikesEmptyView(model: model)
+        }
+        CaseLet(/BikesModel.ViewState.loadedBikes) { $bikes in
+          BikesLoadedView(bikes: bikes, model: model)
+        }
       }
-      CaseLet(/BikesModel.ViewState.loadedBikes) { $bikes in
-        BikesLoadedView(bikes: bikes, model: model)
-      }
+    } else: {
+      Theme.AppColor.appBlack.value
+        .ignoresSafeArea()
     }
     .viewDidLoadTask {
       await self.model.load()

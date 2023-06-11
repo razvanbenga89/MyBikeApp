@@ -56,9 +56,11 @@ public class RideBaseModel: ObservableObject {
   }
   
   @Published var formattedDate: String = ""
-  @Published var selectedDate: Date = Date() {
+  @Published var selectedDate: Date? {
     didSet {
-      formattedDate = DateFormatter.rideDateFormatter.string(from: selectedDate)
+      if let selectedDate = selectedDate {
+        formattedDate = DateFormatter.rideDateFormatter.string(from: selectedDate)
+      }
     }
   }
   @Published var isDateFieldValid: Bool = true
@@ -132,7 +134,7 @@ public class RideBaseModel: ObservableObject {
         withIdentifiers: [bike.id.uuidString]
       )
     
-    let ridesTotalDistance = bike.ridesTotalDistance + updatedDistance
+    let ridesTotalDistance = bike.ridesTotalDistanceAfterLatestService + updatedDistance
     
     if ridesTotalDistance >= bike.serviceDue - Double(UserDefaultsConfig.serviceReminderDistance) {
       let content = UNMutableNotificationContent()
@@ -178,7 +180,7 @@ public class AddRideModel: RideBaseModel {
         name: rideName,
         distance: Double(distance) ?? 0,
         duration: (selectedHours * 60) + selectedMinutes,
-        date: selectedDate,
+        date: selectedDate ?? Date(),
         bikeId: selectedBike.id,
         bikeName: selectedBike.name
       )
@@ -241,7 +243,7 @@ public class EditRideModel: RideBaseModel {
         name: rideName,
         distance: Double(distance) ?? 0,
         duration: (selectedHours * 60) + selectedMinutes,
-        date: selectedDate,
+        date: selectedDate ?? Date(),
         bikeId: selectedBike.id,
         bikeName: selectedBike.name
       )
@@ -298,7 +300,7 @@ public struct AddRideView: View {
                   Text(selectedValue.name)
                     .foregroundColor(.white)
                 }
-                .frame(width: 100, height: 40)
+                .padding()
               },
               onTapGesture: {
                 self.focusedField = nil

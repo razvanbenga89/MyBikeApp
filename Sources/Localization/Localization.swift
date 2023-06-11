@@ -163,4 +163,10 @@ public enum Localization {
   
   @Localized(key: "service_reminder_placeholder")
   public static var serviceReminderPlaceholder
+  
+  @Localized(key: "mark_latest_service")
+  public static var markLatestService
+  
+  @Localized(key: "latest_service")
+  public static var latestService
 }

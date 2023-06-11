@@ -63,10 +63,23 @@ public struct Bike: Identifiable {
   public let serviceDue: Double
   public let isDefault: Bool
   public var rides: [Ride] = []
+  public var latestService: Date?
   
   public var ridesTotalDistance: Double {
     rides.reduce(0) { total, ride in
       total + ride.distance
+    }
+  }
+  
+  public var ridesTotalDistanceAfterLatestService: Double {
+    if let latestService = latestService {
+      let ridesAfterLastService = rides.filter { $0.date > latestService }
+      
+      return ridesAfterLastService.reduce(0) { total, ride in
+        total + ride.distance
+      }
+    } else {
+      return ridesTotalDistance
     }
   }
   
@@ -78,6 +91,7 @@ public struct Bike: Identifiable {
     wheelSize: WheelSize,
     serviceDue: Double,
     isDefault: Bool,
+    latestService: Date? = nil,
     rides: [Ride] = []
   ) {
     self.id = id
@@ -87,6 +101,7 @@ public struct Bike: Identifiable {
     self.wheelSize = wheelSize
     self.serviceDue = serviceDue
     self.isDefault = isDefault
+    self.latestService = latestService
     self.rides = rides
   }
 }

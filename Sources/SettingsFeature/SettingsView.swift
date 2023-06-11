@@ -94,7 +94,7 @@ public struct SettingsView: View {
               Text(selectedValue.description)
                 .foregroundColor(.white)
             }
-            .frame(width: 100, height: 40)
+            .padding()
           },
           onTapGesture: {}
         )
@@ -135,7 +135,7 @@ public struct SettingsView: View {
               Text(selectedValue.name)
                 .foregroundColor(.white)
             }
-            .frame(width: 100, height: 40)
+            .padding()
           },
           onTapGesture: {}
         )

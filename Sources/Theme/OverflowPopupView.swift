@@ -56,9 +56,9 @@ public struct OverflowPopupView: View {
             }
           }
         }
+        .padding()
         .font(.buttonFont)
         .foregroundColor(.white)
-        .frame(width: 100, height: 80)
         .background(Theme.AppColor.appGreyBlue.value)
       }
     }

@@ -67,7 +67,8 @@ let package = Package(
       ]),
       .target(name: "Theme", dependencies: [
         .product(name: "SwiftUINavigation", package: "swiftui-navigation"),
-        "Popovers"
+        "Popovers",
+        "Localization"
       ]),
       .target(
         name: "Localization",

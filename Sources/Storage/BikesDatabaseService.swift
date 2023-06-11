@@ -41,6 +41,7 @@ extension Bike {
       wheelSize: wheelSize,
       serviceDue: convertedServiceDue.value,
       isDefault: entity.isDefault,
+      latestService: entity.lastestService,
       rides: rides
     )
   }
@@ -141,6 +142,23 @@ public actor BikesDatabaseService {
       entities.forEach { entity in
         entity.isDefault = entity.bikeId == id
       }
+      
+      guard context.saveIfNeeded() else {
+        throw DBError.updateEntityFailed
+      }
+    }
+  }
+  
+  public nonisolated func updateLatestService(id: UUID, date: Date) async throws {
+    let context = contextProvider.viewContext
+    
+    try await context.perform {
+      let predicate = NSPredicate(format: "%K = %@", #keyPath(BikeEntity.bikeId), "\(id)")
+      guard let entity = BikeEntity.fetchFirst(context: context, predicate: predicate) as? BikeEntity else {
+        throw DBError.entityNotFound
+      }
+      
+      entity.lastestService = date
       
       guard context.saveIfNeeded() else {
         throw DBError.updateEntityFailed

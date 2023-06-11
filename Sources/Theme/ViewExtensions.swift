@@ -8,6 +8,7 @@
 import SwiftUI
 import Popovers
 import SwiftUINavigation
+import Localization
 
 public extension View {
   @ViewBuilder func isHidden(_ isHidden: Bool) -> some View {

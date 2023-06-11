@@ -55,24 +55,26 @@ public class RidesModel: ObservableObject {
   @MainActor
   func load() async {
     for await rides in ridesRepo.getRides() {
-      if rides.isEmpty {
-        viewState = .empty
-      } else {
-        let sortedRides = Dictionary(grouping: rides) { ride in
-          let dateComps = Calendar.current.dateComponents([.year, .month], from: ride.date)
-          return dateComps
-        }
-        
-        let sections = sortedRides.compactMap { key, value -> RidesSection? in
-          guard let date = Calendar.current.date(from: key) else {
-            return nil
+      withAnimation {
+        if rides.isEmpty {
+          viewState = .empty
+        } else {
+          let sortedRides = Dictionary(grouping: rides) { ride in
+            let dateComps = Calendar.current.dateComponents([.year, .month], from: ride.date)
+            return dateComps
           }
           
-          return RidesSection(date: date, rides: value)
+          let sections = sortedRides.compactMap { key, value -> RidesSection? in
+            guard let date = Calendar.current.date(from: key) else {
+              return nil
+            }
+            
+            return RidesSection(date: date, rides: value)
+          }
+          
+          let sortedSections = sections.sorted(by: { $0.date > $1.date })
+          viewState = .loadedRides(sortedSections)
         }
-        
-        let sortedSections = sections.sorted(by: { $0.date > $1.date })
-        viewState = .loadedRides(sortedSections)
       }
     }
   }

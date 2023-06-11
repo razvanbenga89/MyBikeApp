@@ -53,3 +53,5 @@
 "distance_placeholder" = "Distance";
 "distance_units_placeholder" = "Distance Units";
 "service_reminder_placeholder" = "Service Reminder";
+"mark_latest_service" = "Mark latest service";
+"latest_service" = "Latest service ";

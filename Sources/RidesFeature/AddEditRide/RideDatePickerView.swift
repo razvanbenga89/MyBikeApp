@@ -12,15 +12,14 @@ import Localization
 
 struct RideDatePickerView: View {
   @Binding var formattedDate: String
-  @Binding var selectedDate: Date
+  @Binding var selectedDate: Date?
   @Binding var isFieldValid: Bool
   @State var isShowingPopover: Bool = false
-  @State private var date = Date()
   private let onTapGesture: () -> Void
   
   init(
     formattedDate: Binding<String>,
-    selectedDate: Binding<Date>,
+    selectedDate: Binding<Date?>,
     isFieldValid: Binding<Bool>,
     onTapGesture: @escaping () -> Void
   ) {
@@ -28,7 +27,6 @@ struct RideDatePickerView: View {
     self._selectedDate = selectedDate
     self._isFieldValid = isFieldValid
     self.onTapGesture = onTapGesture
-    self.date = selectedDate.wrappedValue
   }
   
   var body: some View {
@@ -55,22 +53,9 @@ struct RideDatePickerView: View {
         backgroundColor: Theme.AppColor.appGreyBlue.value,
         padding: 0
       ) {
-        VStack {
-          DatePicker("", selection: $date, displayedComponents: .date)
-            .datePickerStyle(.graphical)
-            .labelsHidden()
-            .scaleEffect(x: 0.9, y: 0.9, anchor: .center)
-          
-          Button {
-            isShowingPopover = false
-            self.selectedDate = self.date
-          } label: {
-            Text("Save")
-          }
-          .buttonStyle(PrimaryButtonStyle())
+        DatePickerView(selectedDate: $selectedDate) {
+          isShowingPopover = false
         }
-        .padding()
-        .background(Theme.AppColor.appGreyBlue.value)
       }
     }
   }
